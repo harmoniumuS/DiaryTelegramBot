@@ -45,7 +45,6 @@ namespace DiaryTelegramBot
             {
                 return;
             }
-            
             var chatId = message.Chat.Id;
             Console.WriteLine($"Received a'{message.Text}' message in chat{chatId}");
 

@@ -1,4 +1,5 @@
 using DiaryTelegramBot;
+using DiaryTelegramBot.Data;
 using DiaryTelegramBot.Options;
 
 var builder = Host.CreateApplicationBuilder(args);
