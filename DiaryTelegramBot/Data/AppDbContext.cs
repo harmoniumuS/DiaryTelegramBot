@@ -11,11 +11,16 @@ namespace DiaryTelegramBot.Data
 {
     public class AppDbContext:DbContext
     {
-        public DbSet<UserData> UsersData { get; set; }
+        public DbSet<User> Users { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlite("Data Source=Data/botdata.db");
+        }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<User>().HasKey(user=>user.Id);
         }
     }
 }

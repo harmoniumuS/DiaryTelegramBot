@@ -1,12 +1,17 @@
+using DiaryTelegramBot.Handlers;
+using DiaryTelegramBot.Keyboards;
 using DiaryTelegramBot.Options;
+using DiaryTelegramBot.Wrappers;
 using Microsoft.Extensions.Options;
 using System;
+using System.Threading;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace DiaryTelegramBot
 {
@@ -14,122 +19,65 @@ namespace DiaryTelegramBot
     {
         private readonly ILogger<TelegramBotService> _logger;
         private readonly TelegramOptions _telegramOptions;
+        private readonly MessageHandler _messageHandler;
+        private readonly BotClientWrapper _clientWrapper;
+        private readonly ITelegramBotClient _botClient;
 
-        public TelegramBotService(ILogger<TelegramBotService> logger,IOptions<TelegramOptions> telegramOptions)
+        public TelegramBotService(ITelegramBotClient botClient,ILogger<TelegramBotService> logger,IOptions<TelegramOptions> telegramOptions,
+            MessageHandler messageHandler,BotClientWrapper botClientWrapper)
         {
             _logger = logger;
             _telegramOptions = telegramOptions.Value;
+            _messageHandler = messageHandler;
+            _clientWrapper = botClientWrapper;
+            _botClient = botClient;
+            
         }
-
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
-            var botClient = new TelegramBotClient(_telegramOptions.Token);
-            ReceiverOptions receiverOptions = new()
+         
+            while (!cancellationToken.IsCancellationRequested)
             {
-                AllowedUpdates = []
-            }; 
+                try
+                {
+                    var updates = await _botClient.GetUpdatesAsync(cancellationToken: cancellationToken);
 
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                await botClient.ReceiveAsync(UpdateHandler,ErrorHandler, receiverOptions,stoppingToken);
-  
-            }
-        }
-        private static async Task UpdateHandler(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
-        {
-            if (update.Message is not { } message)
-            {
-                return;
-            }
-            if (message.Text is not { } messageText)
-            {
-                return;
-            }
-            var chatId = message.Chat.Id;
-            Console.WriteLine($"Received a'{message.Text}' message in chat{chatId}");
-
-            switch (update.Type)
-            {
-                case UpdateType.Message:
+                    foreach (var update in updates)
                     {
-                        var user = message.From;
-                        switch (message.Type)
-                        {
-                            case MessageType.Text:
-                                if (message.Text == "/start")
-                                {
-                                    await botClient.SendTextMessageAsync(
-                                        chatId,
-                                        "Выбери клавиатуру:\n" +
-                                        "/inline\n" +
-                                        "/reply\n",
-                                        cancellationToken:cancellationToken);
-                                }
-                                if (message.Text == "/inline")
-                                {
-                                    var inlineKeyboard = new InlineKeyboardMarkup(
-                                        new List<InlineKeyboardButton[]>() 
-                                        {
-                                        new InlineKeyboardButton[] // тут создаем массив кнопок
-                                        {
-                                            InlineKeyboardButton.WithCallbackData("Это кнопка с сайтом", "data1"),
-                                            InlineKeyboardButton.WithCallbackData("А это просто кнопка", "data2"),
-                                        },
-                                        });
-
-                                    await botClient.SendTextMessageAsync(
-                                        chatId,
-                                        "Это inline клавиатура!",
-                                        replyMarkup: inlineKeyboard,
-                                        cancellationToken:cancellationToken);
-                                    return;
-                                }
-                                if (message.Text == "/reply")
-                                {
-                                    var replyKeyboard = new ReplyKeyboardMarkup(
-                                    new List<KeyboardButton[]>()
-                                    {
-                                        new KeyboardButton[]
-                                        {
-                                            new KeyboardButton("Привет!"),
-                                            new KeyboardButton("Пока!"),
-                                        },
-                                        new KeyboardButton[]
-                                        {
-                                            new KeyboardButton("Как дела?")
-                                        },
-                                        new KeyboardButton[]
-                                        {
-                                            new KeyboardButton("Все хорошо!")
-                                        }
-                                    }){ ResizeKeyboard = true};
-                                    await botClient.SendTextMessageAsync(
-                                        chatId,
-                                        text: "Это reply клавиатура:",
-                                        replyMarkup: replyKeyboard);
-                                }
-                                return;
-                        }
+                        await HandleUpdateAsync(_botClient, update, cancellationToken);
                     }
-                Message sentMessage = await botClient.SendTextMessageAsync(
-                chatId: chatId,
-                text: "You said:\n" + messageText,
-                cancellationToken: cancellationToken);
-                    return;
-            }   
-        }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Ошибка при обработке обновлений Telegram");
+                    await ErrorHandler(_botClient, ex, cancellationToken);
+                }
 
-        private static Task ErrorHandler(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)
+                // Ждем немного перед следующим запросом обновлений
+                await Task.Delay(1000, cancellationToken);
+            }
+        }
+        private  async Task HandleUpdateAsync(ITelegramBotClient botClient, Telegram.Bot.Types.Update update, CancellationToken cancellationToken)
         {
-            // Тут создадим переменную, в которую поместим код ошибки и её сообщение 
-            var ErrorMessage = error switch
+            if (update.Message == null) return;
+
+            var chatId = update.Message.Chat.Id;
+
+            if (update.Type == UpdateType.Message && update.Message.Text == "/start")
+            {
+                await BotKeyboardManager.SendMainKeyboardAsync(botClient, chatId, cancellationToken);
+            }
+        }
+        private static Task ErrorHandler(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
+        {
+            var errorMessage = exception switch
             {
                 ApiRequestException apiRequestException
                     => $"Telegram API Error:\n[{apiRequestException.ErrorCode}]\n{apiRequestException.Message}",
-                _ => error.ToString()
+                _ => exception.ToString()
             };
 
-            Console.WriteLine(ErrorMessage);
+            
             return Task.CompletedTask;
         }
     }
