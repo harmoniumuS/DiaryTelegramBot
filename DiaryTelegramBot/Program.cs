@@ -1,19 +1,22 @@
 using DiaryTelegramBot;
 using DiaryTelegramBot.Data;
+using DiaryTelegramBot.Handlers;
 using DiaryTelegramBot.Options;
 using Microsoft.Extensions.Options;
 using Telegram.Bot;
-
-var builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddHostedService<TelegramBotService>();
-
-builder.Services.AddSingleton<ITelegramBotClient>(sp=>
+using Microsoft.Extensions.Hosting;
+public class Program
 {
-    var options = sp.GetRequiredService<IOptions<TelegramOptions>>().Value;
-    return new TelegramBotClient(options.Token);
-});
+    public static void Main(string[] args)
+    {
+        CreateHostBuilder(args).Build().Run();
+    }
 
-builder.Services.Configure<TelegramOptions>(builder.Configuration.GetSection(TelegramOptions.Telegram));
-
-var host = builder.Build();
-host.Run();
+    public static IHostBuilder CreateHostBuilder(string[] args) =>
+        Host.CreateDefaultBuilder(args)
+            .ConfigureServices((hostContext, services) =>
+            {
+                var startup = new StartUp(hostContext.Configuration);
+                startup.ConfigureServices(services);
+            });
+}

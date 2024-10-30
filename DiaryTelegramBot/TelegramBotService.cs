@@ -20,16 +20,14 @@ namespace DiaryTelegramBot
         private readonly ILogger<TelegramBotService> _logger;
         private readonly TelegramOptions _telegramOptions;
         private readonly MessageHandler _messageHandler;
-        private readonly BotClientWrapper _clientWrapper;
         private readonly ITelegramBotClient _botClient;
 
         public TelegramBotService(ITelegramBotClient botClient,ILogger<TelegramBotService> logger,IOptions<TelegramOptions> telegramOptions,
-            MessageHandler messageHandler,BotClientWrapper botClientWrapper)
+            MessageHandler messageHandler)
         {
             _logger = logger;
             _telegramOptions = telegramOptions.Value;
             _messageHandler = messageHandler;
-            _clientWrapper = botClientWrapper;
             _botClient = botClient;
             
         }
@@ -53,7 +51,6 @@ namespace DiaryTelegramBot
                     await ErrorHandler(_botClient, ex, cancellationToken);
                 }
 
-                // Ждем немного перед следующим запросом обновлений
                 await Task.Delay(1000, cancellationToken);
             }
         }

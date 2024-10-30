@@ -10,9 +10,9 @@ namespace DiaryTelegramBot.Wrappers
 {
     public class BotClientWrapper
     {
-        private readonly TelegramBotClient _botClient;
+        private readonly ITelegramBotClient _botClient;
 
-        public BotClientWrapper(TelegramBotClient botClient)
+        public BotClientWrapper(ITelegramBotClient botClient)
         {
             _botClient = botClient;
         }
