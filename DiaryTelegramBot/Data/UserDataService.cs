@@ -1,117 +1,153 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DiaryTelegramBot.Data
 {
     public class UserDataService
     {
         private readonly AppDbContext _context;
+
         public UserDataService(AppDbContext context)
         {
             _context = context;
         }
 
-        public async Task AddUserAsync(string userId, string userData)
+        private async Task<User> GetOrCreateUserAsync(string userId)
         {
             var user = await _context.Users.SingleOrDefaultAsync(u => u.UserId == userId);
 
             if (user == null)
             {
-                user = new User { UserId = userId };
+                Console.WriteLine($"Creating new user: {userId}");
+                user = new User
+                {
+                    UserId = userId,
+                    UserJsonData = JsonSerializer.Serialize(new Dictionary<DateTime, List<string>>())
+                };
                 _context.Users.Add(user);
-            }
-
-            // Сериализация Dictionary в JSON
-            user.UserJsonData = JsonSerializer.Serialize(userData);
-            await _context.SaveChangesAsync();
-        }
-        public async Task AddOrUpdateUserDataAsync(string userId, DateTime date, string content)
-        {
-            var user = await _context.Users.SingleOrDefaultAsync(u => u.UserId == userId);
-            if (user != null)
-            {
-                // Десериализация существующих данных
-                var userData = string.IsNullOrEmpty(user.UserJsonData)
-                    ? new Dictionary<DateTime, string>()
-                    : JsonSerializer.Deserialize<Dictionary<DateTime, string>>(user.UserJsonData);
-
-                // Добавление или обновление записи
-                userData[date] = content;
-
-                // Сериализация обратно в JSON
-                user.UserJsonData = JsonSerializer.Serialize(userData);
                 await _context.SaveChangesAsync();
             }
 
+            return user;
+        }
+
+        private async Task<Dictionary<DateTime, List<string>>> GetUserDataFromDatabaseAsync(string userId)
+        {
+            var user = await GetOrCreateUserAsync(userId);
+            return DeserializeUserData(user.UserJsonData);
+        }
+
+        public async Task SaveUserDataAsync(string userId, Dictionary<DateTime, List<string>> userData)
+        {
+            var user = await GetOrCreateUserAsync(userId);
+
+            try
+            {
+                user.UserJsonData = SerializeUserData(userData);
+                Console.WriteLine($"Saving data for user {userId}");
+
+                await _context.SaveChangesAsync();
+                Console.WriteLine("Changes saved successfully");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error while saving data for user {userId}: {ex.Message}");
+            }
+        }
+
+        public async Task AddOrUpdateUserDataAsync(string userId, DateTime date, string content)
+        {
+            try
+            {
+                var userData = await GetUserDataFromDatabaseAsync(userId);
+                var dateKey = date.Date;
+
+                if (!userData.ContainsKey(dateKey))
+                    userData[dateKey] = new List<string>();
+
+                userData[dateKey].Add(content);
+                await SaveUserDataAsync(userId, userData);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при добавлении данных пользователя {userId}: {ex.Message}");
+            }
         }
 
         public async Task<List<string>> GetUserDataAsync(string userId, DateTime date)
         {
-               var user = await _context.Users.SingleOrDefaultAsync(u => u.UserId == userId);
-
-            if (string.IsNullOrEmpty(user.UserJsonData))
-            { 
+            try
+            {
+                var userData = await GetUserDataFromDatabaseAsync(userId);
+                return userData.TryGetValue(date.Date, out var records) ? records : new List<string>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при получении данных пользователя {userId}: {ex.Message}");
                 return new List<string>();
             }
-
-            var userRecords = JsonSerializer.Deserialize<Dictionary<DateTime, string>>(user.UserJsonData);
-
-            var records = userRecords.Where(d => d.Key.Date == date.Date).Select(r => r.Value).ToList();
-
-            return records;
         }
 
-        public async Task RemoveUserDataAsync(string userId,DateTime date)
-        { 
-            var user = await _context.Users.SingleOrDefaultAsync(u => u.UserId == userId);
-            if (user != null)
+        public async Task<Dictionary<DateTime, List<string>>> GetUserDataAsync(string userId)
+        {
+            try
             {
-                var userData = string.IsNullOrEmpty(user.UserJsonData)
-                    ? new Dictionary<DateTime, string>()
-                    : JsonSerializer.Deserialize<Dictionary<DateTime, string>>(user.UserJsonData);
-                if (userData.Remove(date))
-                { 
-                    user.UserJsonData = JsonSerializer.Serialize<Dictionary<DateTime, string>>(userData);
-                    await _context.SaveChangesAsync();
+                return await GetUserDataFromDatabaseAsync(userId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при получении всех данных пользователя {userId}: {ex.Message}");
+                return new Dictionary<DateTime, List<string>>();
+            }
+        }
+
+        public async Task RemoveUserDataAsync(string userId, DateTime date, string? content = null)
+        {
+            try
+            {
+                var userData = await GetUserDataFromDatabaseAsync(userId);
+                var dateKey = date.Date;
+
+                if (!userData.TryGetValue(dateKey, out var entries))
+                {
+                    Console.WriteLine($"Данные на {dateKey.ToShortDateString()} для пользователя {userId} не найдены.");
+                    return;
                 }
+
+                if (content == null)
+                {
+                    userData.Remove(dateKey);
+                    Console.WriteLine($"Все записи на {dateKey.ToShortDateString()} для пользователя {userId} удалены.");
+                }
+                else if (entries.Remove(content))
+                {
+                    if (entries.Count == 0)
+                        userData.Remove(dateKey);
+
+                    Console.WriteLine($"Запись '{content}' на {dateKey.ToShortDateString()} для пользователя {userId} удалена.");
+                }
+                else
+                {
+                    Console.WriteLine($"Запись '{content}' не найдена на {dateKey.ToShortDateString()} для пользователя {userId}.");
+                    return;
+                }
+
+                await SaveUserDataAsync(userId, userData);
             }
-        }
-        public async Task RemoveUserDataAsync(string userId, DateTime date,string content)
-        {
-            var user = await _context.Users.SingleOrDefaultAsync(u => u.UserId == userId);
-            if (user == null || string.IsNullOrEmpty(user.UserJsonData))
-                return;
-
-            var userData = JsonSerializer.Deserialize<Dictionary<DateTime, List<string>>>(user.UserJsonData);
-            if (!userData.TryGetValue(date, out var entries) || entries == null)
-                return;
-
-            if (!entries.Remove(content))
-                return;
-
-            if (entries.Count == 0)
-                userData.Remove(date);
-
-            user.UserJsonData = JsonSerializer.Serialize(userData);
-            await _context.SaveChangesAsync();
-            
-        }
-
-        public async Task<Dictionary<DateTime, string>> GetUserDataAsync(string userId)
-        {
-            var user = await _context.Users.SingleOrDefaultAsync(u => u.UserId == userId);
-            if (user != null && !string.IsNullOrEmpty(user.UserJsonData))
+            catch (Exception ex)
             {
-                return JsonSerializer.Deserialize<Dictionary<DateTime, string>>(user.UserJsonData);
+                Console.WriteLine($"Ошибка при удалении данных пользователя {userId} на {date.Date}: {ex.Message}");
             }
-            return new Dictionary<DateTime, string>();
+        }
+        private Dictionary<DateTime, List<string>> DeserializeUserData(string? jsonData)
+        {
+            return JsonSerializer.Deserialize<Dictionary<DateTime, List<string>>>(jsonData ?? string.Empty)
+                   ?? new Dictionary<DateTime, List<string>>();
         }
 
+        private string SerializeUserData(Dictionary<DateTime, List<string>> data)
+        {
+            return JsonSerializer.Serialize(data);
+        }
     }
 }
