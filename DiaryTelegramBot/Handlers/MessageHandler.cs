@@ -5,6 +5,7 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.CalendarKit;
+using Telegram.CalendarKit.Models.Enums;
 
 namespace DiaryTelegramBot.Handlers
 {
@@ -35,10 +36,10 @@ namespace DiaryTelegramBot.Handlers
 
         private async Task HandleMessageAsync(ITelegramBotClient botClient, Message message, CancellationToken cancellationToken)
         {
-            var userId = message?.From?.Id.ToString(); // Ensure userId is not null
+            var userId = message?.From?.Id.ToString(); 
             if (string.IsNullOrEmpty(userId))
             {
-                // Log error or handle the case where userId is null
+                
                 return;
             }
 
@@ -77,7 +78,7 @@ namespace DiaryTelegramBot.Handlers
         {
             userState.TempContent = text;
             userState.Stage = InputStage.AwaitingDate;
-            await _botClientWrapper.SendTextMessageAsync(chatId, "Введите дату в формате ГГГГ-ММ-ДД, или нажмите /today для сегодняшней:", cancellationToken);
+            await BotKeyboardManager.SendAddRecordsKeyboardAsync(botClient, chatId, cancellationToken);
         }
 
         private async Task HandleAwaitingDateState(ITelegramBotClient botClient, long chatId, TempUserState userState, string text, string userId, CancellationToken cancellationToken)
@@ -163,81 +164,160 @@ namespace DiaryTelegramBot.Handlers
                 await _botClientWrapper.SendTextMessageAsync(chatId, "Неверный выбор, выберите корректный номер записи для удаления.", cancellationToken);
             }
         }
+        
+        private async Task HandleCallbackQueryAsync(ITelegramBotClient botClient, CallbackQuery callbackQuery, CancellationToken cancellationToken)
+            {
+            var userId = callbackQuery?.From?.Id.ToString();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return;
+            }
 
-       private async Task HandleCallbackQueryAsync(ITelegramBotClient botClient, CallbackQuery callbackQuery, CancellationToken cancellationToken)
-{
-    var userId = callbackQuery?.From?.Id.ToString();
-    if (string.IsNullOrEmpty(userId))
-    {
-        return;
-    }
+            var chatId = callbackQuery.Message.Chat.Id;
 
-    var chatId = callbackQuery.Message.Chat.Id;
-
-    try
-    {
-        switch (callbackQuery.Data)
-        {
-            case "add_record":
-                await HandleAddRecord(botClient, chatId, userId, cancellationToken);
-                break;
-
-            case "remove_record":
-                await HandleRemoveRecord(botClient, chatId, userId, cancellationToken);
-                break;
-
-            case "view_records":
-                await HandleViewRecords(botClient, chatId, userId, cancellationToken);
-                break;
-
-            case { } data when data.StartsWith("delete_"):
-                if (int.TryParse(data["delete_".Length..], out int index))
+            try
+            {
+                switch (callbackQuery.Data)
                 {
-                    await HandleRemoveRecord(botClient, chatId, userId, index, cancellationToken);
+                    case "add_record":
+                        var userState = _userStateService.GetOrCreateState(userId);
+                        userState.Stage = InputStage.AwaitingContent;
+                        
+                        await HandleAddRecord(botClient, chatId, userId, cancellationToken);
+                        
+                        break;
+
+                    case "remove_record":
+                        await HandleRemoveRecord(botClient, chatId, userId, cancellationToken);
+                        break;
+
+                    case "view_records":
+                        await HandleViewRecords(botClient, chatId, userId, cancellationToken);
+                        break;
+                    case { } dataCalendar when dataCalendar.StartsWith("calendar:day:"):
+                    {
+                        await botClient.AnswerCallbackQuery(
+                            callbackQuery.Id,
+                            cancellationToken: cancellationToken);
+                        if (dataCalendar.Contains("next") || dataCalendar.Contains("prev"))
+                        {
+
+                            await BotKeyboardManager._calendarBuilder.HandleNavigation(
+                                dataCalendar,
+                                CalendarViewType.Default,
+                                "ru");
+                        }
+                        else
+                        {
+                            var datePart = dataCalendar.Substring("calendar:day:".Length);
+                            if (DateTime.TryParse(datePart, out var parsedDate))
+                            {
+                                var userStateCalendar = _userStateService.GetOrCreateState(userId);
+                                if (userStateCalendar.Stage == InputStage.AwaitingDate)
+                                {
+                                    userStateCalendar.TempDate = parsedDate;
+                                    userStateCalendar.Stage = InputStage.None;
+                                    await _botClientWrapper.SendTextMessageAsync(
+                                        chatId,
+                                        $"Вы выбрали дату: {parsedDate:dd.MM.yyyy}. Запись успешно добавлена.",
+                                        cancellationToken: cancellationToken);
+                                }
+
+                                await _userDataService.AddOrUpdateUserDataAsync(userId, parsedDate,
+                                    userStateCalendar.TempContent);
+                            }
+                            else
+                            {
+                                await botClient.SendMessage(
+                                    chatId,
+                                    "Некорректная дата, попробуйте ещё раз.",
+                                    cancellationToken: cancellationToken);
+                            }
+                        }
+                        break;
+                    }
+
+
+                    case { } data when data.StartsWith("delete_"):
+                        if (int.TryParse(data["delete_".Length..], out int index))
+                        {
+                            await HandleRemoveRecord(botClient, chatId, userId, index, cancellationToken);
+                        }
+                        else
+                        {
+                            try
+                            {
+                                await botClient.AnswerCallbackQuery(
+                                    callbackQuery.Id,           
+                                    text: "Невозможно удалить запись. Некорректный индекс.",   
+                                    showAlert: true,           
+                                    cancellationToken: cancellationToken
+                                );
+                            }
+                            catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.Message.Contains("query is too old"))
+                            {
+                                Console.WriteLine("CallbackQuery is too old to answer: " + ex.Message);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine("Unexpected error in AnswerCallbackQuery: " + ex.Message);
+                            }
+                            
+                            return;
+                        }
+                        break;
+
+                    default:
+                        try
+                        {
+                            await botClient.AnswerCallbackQuery(
+                                callbackQuery.Id,           
+                                text: "Неизвестная команда.",   
+                                showAlert: true,           
+                                cancellationToken: cancellationToken
+                            );
+                        }
+                        catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.Message.Contains("query is too old"))
+                        {
+                            Console.WriteLine("CallbackQuery is too old to answer: " + ex.Message);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("Unexpected error in AnswerCallbackQuery: " + ex.Message);
+                        }
+                        return;
                 }
-                else
+
+                try
                 {
                     await botClient.AnswerCallbackQuery(
                         callbackQuery.Id,           
-                        text: "Невозможно удалить запись. Некорректный индекс.",   
-                        showAlert: true,           
-                        cancellationToken: cancellationToken
+                        text: "Запрос обработан",   
+                        showAlert: false,           
+                        cancellationToken: cancellationToken 
                     );
-                    return;
                 }
-                break;
-
-            default:
+                catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.Message.Contains("query is too old"))
+                {
+                    Console.WriteLine("CallbackQuery is too old to answer: " + ex.Message);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Unexpected error in AnswerCallbackQuery: " + ex.Message);
+                }
+                
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при обработке callback-запроса: {ex.Message}");
                 await botClient.AnswerCallbackQuery(
                     callbackQuery.Id,           
-                    text: "Неизвестная команда.",   
+                    text: "Произошла ошибка при обработке запроса.",   
                     showAlert: true,           
                     cancellationToken: cancellationToken
                 );
-                return;
+            }
         }
-        
-        await botClient.AnswerCallbackQuery(
-            callbackQuery.Id,           
-            text: "Запрос обработан",   
-            showAlert: false,           
-            cancellationToken: cancellationToken 
-        );
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Ошибка при обработке callback-запроса: {ex.Message}");
-        await botClient.AnswerCallbackQuery(
-            callbackQuery.Id,           
-            text: "Произошла ошибка при обработке запроса.",   
-            showAlert: true,           
-            cancellationToken: cancellationToken
-        );
-    }
-}
-
-
-
         private void SetStateToAwaitingContent(string userId)
         {
             if (string.IsNullOrEmpty(userId))
@@ -248,10 +328,12 @@ namespace DiaryTelegramBot.Handlers
         }
         
 
-        private async Task HandleAddRecord(ITelegramBotClient botClient, long chatId, string userId,CancellationToken cancellationToken)
+        private async Task HandleAddRecord(ITelegramBotClient botClient, long chatId, string userId,
+            CancellationToken cancellationToken)
         {
-            SetStateToAwaitingContent(userId);
-            await _botClientWrapper.SendTextMessageAsync(chatId, "Введите запись:",cancellationToken);
+            var userState = _userStateService.GetOrCreateState(userId);
+            await _botClientWrapper.SendTextMessageAsync(chatId,$"Введите запись:",
+                cancellationToken: cancellationToken);
         }
 
         private async Task HandleRemoveRecord(ITelegramBotClient botClient, long chatId, string userId, CancellationToken cancellationToken)

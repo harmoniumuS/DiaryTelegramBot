@@ -1,11 +1,13 @@
 ﻿using Telegram.Bot;
 using Telegram.CalendarKit;
 using Telegram.Bot.Types.ReplyMarkups;
+using Telegram.CalendarKit.Models.Enums;
 
 namespace DiaryTelegramBot.Keyboards
 {
     public static class BotKeyboardManager
     {
+        public static CalendarBuilder _calendarBuilder = new CalendarBuilder();
         public static async Task SendMainKeyboardAsync(ITelegramBotClient botClient, long chatId, CancellationToken cancellationToken)
         {
             var inlineKeyboard = new InlineKeyboardMarkup(new[]
@@ -56,7 +58,14 @@ namespace DiaryTelegramBot.Keyboards
                 cancellationToken: cancellationToken);
         }
 
-
+        public static async Task SendAddRecordsKeyboardAsync(ITelegramBotClient botClient, long chatId,
+            CancellationToken cancellationToken)
+        {
+            await _calendarBuilder.SendCalendarMessageAsync(botClient, chatId, "Выберите необходимую дату:", DateTime.Now.Year, DateTime.Now.Month, CalendarViewType.Default,"Ru");
+            
+        }
+        
+        
     }
     
     
