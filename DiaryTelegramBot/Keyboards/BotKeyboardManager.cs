@@ -36,7 +36,7 @@ namespace DiaryTelegramBot.Keyboards
                     cancellationToken: cancellationToken);
                 return;
             }
-
+        
             var keyboard = new InlineKeyboardMarkup(
                 records.Select((record, index) =>
                 {
@@ -58,11 +58,27 @@ namespace DiaryTelegramBot.Keyboards
                 cancellationToken: cancellationToken);
         }
 
+        public static async Task SendReturnMainMenuKeyboardAsync(ITelegramBotClient botClient, long chatId,
+            CancellationToken cancellationToken)
+        {
+            var inlineKeyboard = new InlineKeyboardMarkup(new[]
+            {
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu"),
+                }
+            });
+            await botClient.SendMessage(
+                chatId,
+                "\u21a9",
+                replyMarkup: inlineKeyboard,
+                cancellationToken: cancellationToken);
+        }
+
         public static async Task SendAddRecordsKeyboardAsync(ITelegramBotClient botClient, long chatId,
             CancellationToken cancellationToken)
         {
             await _calendarBuilder.SendCalendarMessageAsync(botClient, chatId, "Выберите необходимую дату:", DateTime.Now.Year, DateTime.Now.Month, CalendarViewType.Default,"Ru");
-            
         }
         
         
