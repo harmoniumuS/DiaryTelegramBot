@@ -5,6 +5,7 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.CalendarKit;
+using Telegram.CalendarKit.Models;
 using Telegram.CalendarKit.Models.Enums;
 
 namespace DiaryTelegramBot.Handlers
@@ -26,11 +27,34 @@ namespace DiaryTelegramBot.Handlers
         {
             if (update.Type == UpdateType.Message && update.Message?.Text != null)
             {
-                await HandleMessageAsync(botClient, update.Message, cancellationToken);
+                try
+                {
+                    await HandleMessageAsync(botClient, update.Message, cancellationToken);
+                }
+                catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.Message.Contains("query is too old"))
+                {
+                    Console.WriteLine("CallbackQuery is too old to answer: " + ex.Message);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Unexpected error in AnswerCallbackQuery: " + ex.Message);
+                }
             }
             else if (update.Type == UpdateType.CallbackQuery)
             {
-                await HandleCallbackQueryAsync(botClient, update.CallbackQuery,cancellationToken);
+                try
+                {
+                    await HandleCallbackQueryAsync(botClient, update.CallbackQuery,cancellationToken);
+                }
+                catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.Message.Contains("query is too old"))
+                {
+                    Console.WriteLine("CallbackQuery is too old to answer: " + ex.Message);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Unexpected error in AnswerCallbackQuery: " + ex.Message);
+                }
+                
             }
         }
 
@@ -79,6 +103,7 @@ namespace DiaryTelegramBot.Handlers
             userState.TempContent = text;
             userState.Stage = InputStage.AwaitingDate;
             await BotKeyboardManager.SendAddRecordsKeyboardAsync(botClient, chatId, cancellationToken);
+            await BotKeyboardManager.SendReturnMainMenuKeyboardAsync(botClient,chatId, cancellationToken);
         }
 
         private async Task HandleAwaitingDateState(ITelegramBotClient botClient, long chatId, TempUserState userState, string text, string userId, CancellationToken cancellationToken)
@@ -129,6 +154,7 @@ namespace DiaryTelegramBot.Handlers
                     {
                         userState.Stage = InputStage.AwaitingRemoveChoice;
                         await BotKeyboardManager.SendRemoveKeyboardAsync(botClient, chatId, records,cancellationToken);
+                        await BotKeyboardManager.SendReturnMainMenuKeyboardAsync(botClient,chatId, cancellationToken);
                     }
                 }
                 else
@@ -194,21 +220,13 @@ namespace DiaryTelegramBot.Handlers
                     case "view_records":
                         await HandleViewRecords(botClient, chatId, userId, cancellationToken);
                         break;
+                    case "return_main_menu":
+                        await BotKeyboardManager.SendMainKeyboardAsync(botClient, chatId, cancellationToken);
+                        SetStateToAwaitingContent(userId);
+                        break;
+                    
                     case { } dataCalendar when dataCalendar.StartsWith("calendar:day:"):
                     {
-                        await botClient.AnswerCallbackQuery(
-                            callbackQuery.Id,
-                            cancellationToken: cancellationToken);
-                        if (dataCalendar.Contains("next") || dataCalendar.Contains("prev"))
-                        {
-
-                            await BotKeyboardManager._calendarBuilder.HandleNavigation(
-                                dataCalendar,
-                                CalendarViewType.Default,
-                                "ru");
-                        }
-                        else
-                        {
                             var datePart = dataCalendar.Substring("calendar:day:".Length);
                             if (DateTime.TryParse(datePart, out var parsedDate))
                             {
@@ -233,11 +251,36 @@ namespace DiaryTelegramBot.Handlers
                                     "Некорректная дата, попробуйте ещё раз.",
                                     cancellationToken: cancellationToken);
                             }
-                        }
                         break;
                     }
-
-
+                    
+                    case {} dataCalendarButtons when dataCalendarButtons.StartsWith("calendar:prev:") || dataCalendarButtons.StartsWith("calendar:next:"):
+                        var action = dataCalendarButtons.Split(':')[0] == "calendar" ? dataCalendarButtons.Split(':')[1] : string.Empty;
+                        var partOfDate = dataCalendarButtons.Substring($"calendar:{action}:".Length);
+                        if (DateTime.TryParse(partOfDate, out var changeMonthDate))
+                        {
+                            var newDate = action == "prev" 
+                                ? changeMonthDate.AddMonths(-1)
+                                : changeMonthDate.AddMonths(1); 
+                            
+                            var calendarMarkup = BotKeyboardManager._calendarBuilder.GenerateCalendarButtons(newDate.Year, newDate.Month, CalendarViewType.Default, "ru");
+                            await botClient.SendMessage(
+                                chatId,
+                                $"Вы перешли к {newDate:MMMM yyyy}.",
+                                replyMarkup: calendarMarkup,
+                                cancellationToken: cancellationToken
+                            );
+                            await BotKeyboardManager.SendReturnMainMenuKeyboardAsync(botClient,chatId, cancellationToken);
+                        }
+                        else
+                        {
+                            await botClient.SendMessage(
+                                chatId,
+                                "Некорректная дата для перехода, попробуйте ещё раз.",
+                                cancellationToken: cancellationToken);
+                        }
+                        break;
+                    
                     case { } data when data.StartsWith("delete_"):
                         if (int.TryParse(data["delete_".Length..], out int index))
                         {
@@ -357,6 +400,7 @@ namespace DiaryTelegramBot.Handlers
             });
 
             await BotKeyboardManager.SendRemoveKeyboardAsync(botClient, chatId, allRecords, cancellationToken);
+            await BotKeyboardManager.SendReturnMainMenuKeyboardAsync(botClient,chatId, cancellationToken);
         }
         
         private async Task HandleRemoveRecord(ITelegramBotClient botClient, long chatId, string userId, int index, CancellationToken cancellationToken)
@@ -370,6 +414,16 @@ namespace DiaryTelegramBot.Handlers
             }
 
             var recordToDelete = state.TempRecords[index];
+
+
+            var separatorIndex = recordToDelete.IndexOf(": ");
+            if (separatorIndex == -1)
+            {
+                await _botClientWrapper.SendTextMessageAsync(chatId, "Ошибка: некорректная запись.", cancellationToken);
+                return;
+            }
+
+            var recordValue = recordToDelete.Substring(separatorIndex + 2);
             var allData = await _userDataService.GetUserDataAsync(userId);
             
             if (string.IsNullOrEmpty(recordToDelete))
@@ -377,16 +431,9 @@ namespace DiaryTelegramBot.Handlers
                 await _botClientWrapper.SendTextMessageAsync(chatId, "Ошибка: некорректная запись.", cancellationToken);
                 return;
             }
-            
-            var dataToRemove = allData.FirstOrDefault(key => key.Value.Contains(recordToDelete));
-            if (dataToRemove.Key != null)
-            {
-                allData.Remove(dataToRemove.Key);
-            }
-
             foreach (var key in allData.Keys.ToList())
             {
-                if (allData[key].Remove(recordToDelete))
+                if (allData[key].Remove(recordValue))
                 {
                     if (!allData[key].Any())
                         allData.Remove(key);
@@ -397,7 +444,10 @@ namespace DiaryTelegramBot.Handlers
             await _userDataService.SaveUserDataAsync(userId, allData);
             await _botClientWrapper.SendTextMessageAsync(chatId, "Запись успешно удалена.", cancellationToken);
 
-            var updateRecords = allData.SelectMany(key => key.Value).ToList();
+            //Еще раз почитать как это работает
+            var updateRecords = allData.
+                SelectMany(key=>key.Value.
+                    Select(record=>$"{key.Key:yyyy-MM-dd}: {record}")).ToList();
             if (updateRecords.Any())
             {
                 _userStateService.SetState(userId, new TempUserState()
@@ -406,6 +456,7 @@ namespace DiaryTelegramBot.Handlers
                     TempRecords = updateRecords
                 });
                 await BotKeyboardManager.SendRemoveKeyboardAsync(botClient, chatId, updateRecords, cancellationToken, sendIntroMessage: false);
+                await BotKeyboardManager.SendReturnMainMenuKeyboardAsync(botClient,chatId, cancellationToken);
             }
             else
             {
@@ -428,6 +479,7 @@ namespace DiaryTelegramBot.Handlers
                 {
                     await _botClientWrapper.SendTextMessageAsync(chatId, "Записи не найдены!",cancellationToken);
                 }
+                await BotKeyboardManager.SendReturnMainMenuKeyboardAsync(botClient,chatId, cancellationToken);
             }
             catch (Exception ex)
             {
