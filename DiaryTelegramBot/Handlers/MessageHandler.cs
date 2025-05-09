@@ -4,6 +4,7 @@ using DiaryTelegramBot.Wrappers;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.CalendarKit;
 using Telegram.CalendarKit.Models;
 using Telegram.CalendarKit.Models.Enums;
@@ -370,8 +371,16 @@ namespace DiaryTelegramBot.Handlers
             CancellationToken cancellationToken)
         {
             var userState = _userStateService.GetOrCreateState(userId);
-            await _botClientWrapper.SendTextMessageAsync(chatId,$"Введите запись:",
-                cancellationToken: cancellationToken);
+            await botClient.SendMessage(
+                chatId: chatId,
+                "Введите запись:",
+                replyMarkup: new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu"),
+                },
+                cancellationToken: cancellationToken
+            );
+
         }
 
         private async Task HandleRemoveRecord(ITelegramBotClient botClient, long chatId, string userId, CancellationToken cancellationToken)

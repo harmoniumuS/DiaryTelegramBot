@@ -72,7 +72,7 @@ namespace DiaryTelegramBot.Keyboards
             buttons.Add([InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu")]);
             var keyboard = new InlineKeyboardMarkup(buttons);
             await botClient.SendMessage(chatId,
-                $"Выберите дату.Выбран: {date:MMMM yyyy}.",
+                $"Выберите дату. Выбран: {date:MMMM yyyy}.",
                 replyMarkup: keyboard,
                 cancellationToken: cancellationToken);
         }
