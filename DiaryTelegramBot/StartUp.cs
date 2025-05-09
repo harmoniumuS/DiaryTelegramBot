@@ -22,11 +22,15 @@ namespace DiaryTelegramBot
         {
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
-
+            
+            services.AddSingleton<UserStateService>();
             services.AddScoped<UserDataService>();
             services.AddScoped<MessageHandler>();
             services.AddScoped<TelegramBotService>();
-            services.AddSingleton<UserStateService>();
+            services.AddTransient<CallBackQueryHandler>();
+            services.AddScoped<AddRecordHandler>();
+            services.AddScoped<RemoveRecordHandler>();
+            services.AddScoped<ViewAllRecordsHandler>();
             
             services.Configure<TelegramOptions>(Configuration.GetSection("Telegram"));
             
