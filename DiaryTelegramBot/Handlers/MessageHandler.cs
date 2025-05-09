@@ -102,8 +102,7 @@ namespace DiaryTelegramBot.Handlers
         {
             userState.TempContent = text;
             userState.Stage = InputStage.AwaitingDate;
-            await BotKeyboardManager.SendAddRecordsKeyboardAsync(botClient, chatId, cancellationToken);
-            await BotKeyboardManager.SendReturnMainMenuKeyboardAsync(botClient,chatId, cancellationToken);
+            await BotKeyboardManager.SendAddRecordsKeyboardAsync(botClient, chatId, cancellationToken,DateTime.Now);
         }
 
         private async Task HandleAwaitingDateState(ITelegramBotClient botClient, long chatId, TempUserState userState, string text, string userId, CancellationToken cancellationToken)
@@ -154,7 +153,6 @@ namespace DiaryTelegramBot.Handlers
                     {
                         userState.Stage = InputStage.AwaitingRemoveChoice;
                         await BotKeyboardManager.SendRemoveKeyboardAsync(botClient, chatId, records,cancellationToken);
-                        await BotKeyboardManager.SendReturnMainMenuKeyboardAsync(botClient,chatId, cancellationToken);
                     }
                 }
                 else
@@ -208,9 +206,8 @@ namespace DiaryTelegramBot.Handlers
                     case "add_record":
                         var userState = _userStateService.GetOrCreateState(userId);
                         userState.Stage = InputStage.AwaitingContent;
-                        
+
                         await HandleAddRecord(botClient, chatId, userId, cancellationToken);
-                        
                         break;
 
                     case "remove_record":
@@ -262,15 +259,13 @@ namespace DiaryTelegramBot.Handlers
                             var newDate = action == "prev" 
                                 ? changeMonthDate.AddMonths(-1)
                                 : changeMonthDate.AddMonths(1); 
-                            
-                            var calendarMarkup = BotKeyboardManager._calendarBuilder.GenerateCalendarButtons(newDate.Year, newDate.Month, CalendarViewType.Default, "ru");
+                            var calendarMarkup = BotKeyboardManager.CreateCalendarMarkUp(newDate);
                             await botClient.SendMessage(
                                 chatId,
                                 $"Вы перешли к {newDate:MMMM yyyy}.",
                                 replyMarkup: calendarMarkup,
                                 cancellationToken: cancellationToken
                             );
-                            await BotKeyboardManager.SendReturnMainMenuKeyboardAsync(botClient,chatId, cancellationToken);
                         }
                         else
                         {
@@ -400,7 +395,6 @@ namespace DiaryTelegramBot.Handlers
             });
 
             await BotKeyboardManager.SendRemoveKeyboardAsync(botClient, chatId, allRecords, cancellationToken);
-            await BotKeyboardManager.SendReturnMainMenuKeyboardAsync(botClient,chatId, cancellationToken);
         }
         
         private async Task HandleRemoveRecord(ITelegramBotClient botClient, long chatId, string userId, int index, CancellationToken cancellationToken)
@@ -456,7 +450,6 @@ namespace DiaryTelegramBot.Handlers
                     TempRecords = updateRecords
                 });
                 await BotKeyboardManager.SendRemoveKeyboardAsync(botClient, chatId, updateRecords, cancellationToken, sendIntroMessage: false);
-                await BotKeyboardManager.SendReturnMainMenuKeyboardAsync(botClient,chatId, cancellationToken);
             }
             else
             {
@@ -479,7 +472,6 @@ namespace DiaryTelegramBot.Handlers
                 {
                     await _botClientWrapper.SendTextMessageAsync(chatId, "Записи не найдены!",cancellationToken);
                 }
-                await BotKeyboardManager.SendReturnMainMenuKeyboardAsync(botClient,chatId, cancellationToken);
             }
             catch (Exception ex)
             {

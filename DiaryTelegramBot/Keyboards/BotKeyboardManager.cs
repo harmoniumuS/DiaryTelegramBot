@@ -7,7 +7,7 @@ namespace DiaryTelegramBot.Keyboards
 {
     public static class BotKeyboardManager
     {
-        public static CalendarBuilder _calendarBuilder = new CalendarBuilder();
+        private static CalendarBuilder _calendarBuilder = new CalendarBuilder();
         public static async Task SendMainKeyboardAsync(ITelegramBotClient botClient, long chatId, CancellationToken cancellationToken)
         {
             var inlineKeyboard = new InlineKeyboardMarkup(new[]
@@ -28,7 +28,7 @@ namespace DiaryTelegramBot.Keyboards
         public static async Task SendRemoveKeyboardAsync(ITelegramBotClient botClient, long chatId, List<string> records, CancellationToken cancellationToken, 
             bool sendIntroMessage = true)
         {
-            if (records == null || records.Count == 0)
+            if (records.Count == 0)
             {
                 await botClient.SendMessage(
                     chatId,
@@ -39,13 +39,16 @@ namespace DiaryTelegramBot.Keyboards
         
             var keyboard = new InlineKeyboardMarkup(
                 records.Select((record, index) =>
-                {
-                    var displayText = record.Length > 30
-                        ? record.Substring(0, 30) + "..."
-                        : record;
+                    {
+                        var displayText = record.Length > 30
+                            ? record.Substring(0, 30) + "..."
+                            : record;
 
-                    return new[] { InlineKeyboardButton.WithCallbackData($"{index + 1}. {displayText}", $"delete_{index}") };
-                }));
+                        return new[] { InlineKeyboardButton.WithCallbackData($"{index + 1}. {displayText}", $"delete_{index}") };
+                    })
+                    .Append(new[] { InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu") })
+                    .ToArray()
+            );
 
             var messageText = sendIntroMessage
                 ? "Выберите запись для удаления:"
@@ -57,30 +60,38 @@ namespace DiaryTelegramBot.Keyboards
                 replyMarkup: keyboard,
                 cancellationToken: cancellationToken);
         }
-
-        public static async Task SendReturnMainMenuKeyboardAsync(ITelegramBotClient botClient, long chatId,
-            CancellationToken cancellationToken)
-        {
-            var inlineKeyboard = new InlineKeyboardMarkup(new[]
-            {
-                new[]
-                {
-                    InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu"),
-                }
-            });
-            await botClient.SendMessage(
-                chatId,
-                "\u21a9",
-                replyMarkup: inlineKeyboard,
+        public static async Task SendAddRecordsKeyboardAsync(ITelegramBotClient botClient, long chatId,
+            CancellationToken cancellationToken,DateTime date)
+        {  
+            var calendarButtons = _calendarBuilder.GenerateCalendarButtons(
+                date.Year,
+                date.Month,
+                CalendarViewType.Default,
+                "ru");
+            var buttons = calendarButtons.InlineKeyboard.ToList();
+            buttons.Add([InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu")]);
+            var keyboard = new InlineKeyboardMarkup(buttons);
+            await botClient.SendMessage(chatId,
+                $"Выберите дату.Выбран: {date:MMMM yyyy}.",
+                replyMarkup: keyboard,
                 cancellationToken: cancellationToken);
         }
 
-        public static async Task SendAddRecordsKeyboardAsync(ITelegramBotClient botClient, long chatId,
-            CancellationToken cancellationToken)
+        public static InlineKeyboardMarkup CreateCalendarMarkUp(DateTime date)
         {
-            await _calendarBuilder.SendCalendarMessageAsync(botClient, chatId, "Выберите необходимую дату:", DateTime.Now.Year, DateTime.Now.Month, CalendarViewType.Default,"Ru");
+            var calendarButtons = _calendarBuilder.GenerateCalendarButtons(
+                date.Year,
+                date.Month,
+                CalendarViewType.Default,
+                "ru");
+            var buttons = calendarButtons.InlineKeyboard.ToList();
+
+            buttons.Add(new[]
+                { InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu") });
+
+            var keyboard = new InlineKeyboardMarkup(buttons);
+            return keyboard;
         }
-        
         
     }
     

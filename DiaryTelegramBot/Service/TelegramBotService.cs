@@ -72,7 +72,7 @@ public class TelegramBotService : IHostedService
                     offset = updates[updates.Length - 1].Id + 1;
                 }
 
-                await Task.Delay(1000, cancellationToken);
+                //await Task.Delay(1000, cancellationToken);
             }
         }
         catch (Exception ex)
