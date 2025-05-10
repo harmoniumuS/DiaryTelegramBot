@@ -1,5 +1,6 @@
 ﻿using DiaryTelegramBot.Data;
 using DiaryTelegramBot.Keyboards;
+using DiaryTelegramBot.States;
 using DiaryTelegramBot.Wrappers;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -15,13 +16,14 @@ namespace DiaryTelegramBot.Handlers
     {
         private readonly UserStateService _userStateService;
         private readonly CallBackQueryHandler _callBackQueryHandler;
+        private readonly UserStateHandler _userStateHandler;
 
 
-        public MessageHandler(UserStateService userStateService, CallBackQueryHandler callBackQueryHandler)
+        public MessageHandler(UserStateService userStateService, CallBackQueryHandler callBackQueryHandler,UserStateHandler userStateHandler)
         {
             _userStateService = userStateService;
             _callBackQueryHandler = callBackQueryHandler;
-
+            _userStateHandler = userStateHandler;   
         }
         public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update,
             CancellationToken cancellationToken)
@@ -84,22 +86,22 @@ namespace DiaryTelegramBot.Handlers
             {
                 case InputStage.AwaitingContent:
 
-                    await _userStateService.HandleAwaitingContentState(botClient, chatId, userState, text, userId,
+                    await _userStateHandler.HandleAwaitingContentState(botClient, chatId, userState, text, userId,
                         cancellationToken);
                     break;
 
                 case InputStage.AwaitingDate:
-                    await _userStateService.HandleAwaitingDateState(botClient, chatId, userState, text, userId,
+                    await _userStateHandler.HandleAwaitingDateState(chatId, userState, text, userId,
                         cancellationToken);
                     break;
 
                 case InputStage.AwaitingRemoveDate:
-                    await _userStateService.HandleAwaitingRemoveDateState(botClient, chatId, userState, text, userId,
+                    await _userStateHandler.HandleAwaitingRemoveDateState(botClient, chatId, userState, text, userId,
                         cancellationToken);
                     break;
 
                 case InputStage.AwaitingRemoveChoice:
-                    await _userStateService.HandleAwaitingRemoveChoiceState(botClient, chatId, userState, text, userId,
+                    await _userStateHandler.HandleAwaitingRemoveChoiceState(botClient, chatId, userState, text, userId,
                         cancellationToken);
                     break;
             }

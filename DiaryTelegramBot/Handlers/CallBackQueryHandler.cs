@@ -1,5 +1,6 @@
 ﻿using DiaryTelegramBot.Data;
 using DiaryTelegramBot.Keyboards;
+using DiaryTelegramBot.States;
 using DiaryTelegramBot.Wrappers;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -41,7 +42,7 @@ public class CallBackQueryHandler
                     case "add_record":
                         var userState = _userStateService.GetOrCreateState(userId);
                         userState.Stage = InputStage.AwaitingContent;
-
+                        Console.WriteLine($"User {userId} current stage: {userState.Stage}");
                         await _addRecordHandler.HandleAddRecord(botClient, chatId, userId, cancellationToken);
                         break;
 
