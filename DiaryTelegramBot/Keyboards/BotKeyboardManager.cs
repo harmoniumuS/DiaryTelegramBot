@@ -20,6 +20,15 @@ namespace DiaryTelegramBot.Keyboards
                 new[]
                 {
                     InlineKeyboardButton.WithCallbackData("Посмотреть все записи", "view_records"),
+                },
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("Добавить напоминание", "add_reminder"),
+                    InlineKeyboardButton.WithCallbackData("Удалить напоминание", "remove_reminder"),
+                },
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData("Посмотреть все напоминания", "view_reminders"),
                 }
             });
 

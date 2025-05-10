@@ -13,12 +13,13 @@ public class CallBackQueryHandler
     private readonly UserDataService _userDataService;
     private readonly UserStateService _userStateService;
     private readonly AddRecordHandler _addRecordHandler;
+    private readonly AddRemindHandler _addRemindHandler;
     private readonly RemoveRecordHandler _removeRecordHandler;
     private readonly ViewAllRecordsHandler _viewAllRecordsHandler;
 
     public CallBackQueryHandler(BotClientWrapper botClientWrapper, UserDataService userDataService, 
         UserStateService userStateService, AddRecordHandler addRecordHandler,RemoveRecordHandler removeRecordHandler
-        , ViewAllRecordsHandler viewAllRecordsHandler)
+        , ViewAllRecordsHandler viewAllRecordsHandler, AddRemindHandler addRemindHandler)
     {
         _botClientWrapper = botClientWrapper;
         _userDataService = userDataService;
@@ -26,6 +27,7 @@ public class CallBackQueryHandler
         _addRecordHandler = addRecordHandler;
         _removeRecordHandler= removeRecordHandler;
         _viewAllRecordsHandler = viewAllRecordsHandler;
+        _addRemindHandler = addRemindHandler;
     }
      public async Task HandleCallbackQueryAsync(ITelegramBotClient botClient, CallbackQuery callbackQuery, CancellationToken cancellationToken)
             {
@@ -42,7 +44,6 @@ public class CallBackQueryHandler
                     case "add_record":
                         var userState = _userStateService.GetOrCreateState(userId);
                         userState.Stage = InputStage.AwaitingContent;
-                        Console.WriteLine($"User {userId} current stage: {userState.Stage}");
                         await _addRecordHandler.HandleAddRecord(botClient, chatId, userId, cancellationToken);
                         break;
 
@@ -56,6 +57,9 @@ public class CallBackQueryHandler
                     case "return_main_menu":
                         await BotKeyboardManager.SendMainKeyboardAsync(botClient, chatId, cancellationToken);
                         _userStateService.SetStateToAwaitingContent(userId);
+                        break;
+                    case "add_reminder":
+                        await _addRemindHandler.HandleAddRemind(botClient, chatId, userId, cancellationToken);
                         break;
                     
                     case { } dataCalendar when dataCalendar.StartsWith("calendar:day:"):
