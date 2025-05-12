@@ -11,6 +11,8 @@ namespace DiaryTelegramBot.Data
         public int Id { get; set; }
         public string UserId { get; set; }
         public string UserJsonData { get; set; }
+        
+        public List<UserReminder> Reminders { get; set; }
 
     }
 }

@@ -63,23 +63,30 @@ public class CallBackQueryHandler
                         break;
                     
                     case { } dataCalendar when dataCalendar.StartsWith("calendar:day:"):
-                    {
+                        {
                             var datePart = dataCalendar.Substring("calendar:day:".Length);
                             if (DateTime.TryParse(datePart, out var parsedDate))
                             {
                                 var userStateCalendar = _userStateService.GetOrCreateState(userId);
+
                                 if (userStateCalendar.Stage == InputStage.AwaitingDate)
                                 {
                                     userStateCalendar.TempDate = parsedDate;
                                     userStateCalendar.Stage = InputStage.None;
+                                    
+                                        await _botClientWrapper.SendTextMessageAsync(
+                                            chatId,
+                                            $"Вы выбрали дату: {parsedDate:dd.MM.yyyy}. Теперь введите время (в формате ЧЧ:ММ):",
+                                            cancellationToken: cancellationToken);
+                                        userStateCalendar.Stage = InputStage.AwaitingTime;
+                                }
+                                else
+                                {
                                     await _botClientWrapper.SendTextMessageAsync(
                                         chatId,
-                                        $"Вы выбрали дату: {parsedDate:dd.MM.yyyy}. Запись успешно добавлена.",
+                                        "Неверное состояние. Попробуйте ещё раз.",
                                         cancellationToken: cancellationToken);
                                 }
-
-                                await _userDataService.AddOrUpdateUserDataAsync(userId, parsedDate,
-                                    userStateCalendar.TempContent);
                             }
                             else
                             {
@@ -89,8 +96,7 @@ public class CallBackQueryHandler
                                     cancellationToken: cancellationToken);
                             }
                             break;
-                    }
-                    
+                        }
                     case {} dataCalendarButtons when dataCalendarButtons.StartsWith("calendar:prev:") || dataCalendarButtons.StartsWith("calendar:next:"):
                         var action = dataCalendarButtons.Split(':')[0] == "calendar" ? dataCalendarButtons.Split(':')[1] : string.Empty;
                         var partOfDate = dataCalendarButtons.Substring($"calendar:{action}:".Length);
@@ -115,7 +121,13 @@ public class CallBackQueryHandler
                                 cancellationToken: cancellationToken);
                         }
                         break;
-                    
+                    case {} data when data.StartsWith("add_remind_"):
+                        if (int.TryParse(data["add_remind_".Length..], out int result))
+                        {
+                            _addRemindHandler.HandleAddRemind(botClient, chatId, userId, result,
+                                cancellationToken);
+                        }
+                        break;
                     case { } data when data.StartsWith("delete_"):
                         if (int.TryParse(data["delete_".Length..], out int index))
                         {

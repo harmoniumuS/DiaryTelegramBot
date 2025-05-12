@@ -21,7 +21,11 @@ public class ViewAllRecordsHandler
             var userData = await _userDataService.GetUserDataAsync(userId);
             if (userData.Any())
             {
-                var dataString = string.Join("\n", userData.Select(r => $"{r.Key.ToString("yyyy-MM-dd")}: {string.Join(", ", r.Value)}"));
+                var dataString = string.Join("\n", userData.Select(r =>
+                {
+                    var formattedDate = r.Key.ToString("yyyy-MM-dd HH:mm");
+                    return $"{formattedDate}: {string.Join(", ", r.Value)}";
+                }));
                 await _botClientWrapper.SendTextMessageAsync(chatId, dataString,cancellationToken);
             }
             else

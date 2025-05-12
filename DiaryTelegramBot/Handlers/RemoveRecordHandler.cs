@@ -30,7 +30,7 @@ public class RemoveRecordHandler
             }
 
             var allRecords = userData
-                .SelectMany(kv => kv.Value.Select(record => $"{kv.Key:yyyy-MM-dd}: {record}"))
+                .SelectMany(kv => kv.Value.Select(record => $"{kv.Key:yyyy-MM-dd HH:mm}: {record}"))
                 .ToList(); 
 
             _userStateService.SetState(userId, new TempUserState

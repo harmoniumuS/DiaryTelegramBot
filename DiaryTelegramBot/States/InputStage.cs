@@ -7,5 +7,7 @@
         AwaitingRemoveDate,
         AwaitingRemoveChoice,
         AwaitingRemind,
+        AwaitingTime, 
+        AwaitingRemindOffset,
         AwaitingRemoveRemind
     }

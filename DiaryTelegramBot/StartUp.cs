@@ -26,6 +26,7 @@ namespace DiaryTelegramBot
             
             services.AddSingleton<IMemoryCache, MemoryCache>();
             services.AddSingleton<UserStateService>();
+            services.AddScoped<AddRemindHandler>();
             services.AddScoped<UserStateHandler>();
             services.AddScoped<UserDataService>();
             services.AddScoped<MessageHandler>();

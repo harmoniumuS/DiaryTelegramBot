@@ -60,7 +60,7 @@ namespace DiaryTelegramBot.Data
             try
             {
                 var userData = await GetUserDataFromDatabaseAsync(userId);
-                var dateKey = date.Date;
+                var dateKey = date;
 
                 if (!userData.ContainsKey(dateKey))
                     userData[dateKey] = new List<string>();
@@ -106,7 +106,7 @@ namespace DiaryTelegramBot.Data
             try
             {
                 var userData = await GetUserDataFromDatabaseAsync(userId);
-                var dateKey = date.Date;
+                var dateKey = date;
 
                 if (!userData.TryGetValue(dateKey, out var entries))
                 {

@@ -34,6 +34,42 @@ namespace DiaryTelegramBot.Keyboards
 
             await botClient.SendMessage(chatId,"Выберите действие:",replyMarkup:inlineKeyboard,cancellationToken:cancellationToken);
         }
+
+        public static async Task SendAddRemindersKeyboard(ITelegramBotClient botClient, long chatId, List<string> records, CancellationToken cancellationToken)
+        {
+                if (records.Count == 0)
+                {
+                    await botClient.SendMessage(
+                        chatId,
+                        "Нет записей для добавления напоминаний.",
+                        cancellationToken: cancellationToken);
+                    return;
+                }
+
+                var keyboard = new InlineKeyboardMarkup(
+                    records.Select((record, index) =>
+                        {
+                            var displayText = record.Length > 30
+                                ? record.Substring(0, 30) + "..."
+                                : record;
+
+                            return new[]
+                            {
+                                InlineKeyboardButton.WithCallbackData($"{index + 1}. {displayText}", $"add_remind_{index}")
+                            };
+                        })
+                        .Append(new[]
+                            { InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu") })
+                        .ToArray());
+
+                await botClient.SendMessage(
+                    chatId,
+                    "Выберите запись для добавления напоминания:",
+                    replyMarkup: keyboard,
+                    cancellationToken: cancellationToken);
+
+        }
+
         public static async Task SendRemoveKeyboardAsync(ITelegramBotClient botClient, long chatId, List<string> records, CancellationToken cancellationToken, 
             bool sendIntroMessage = true)
         {

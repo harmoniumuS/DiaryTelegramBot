@@ -43,9 +43,7 @@ namespace DiaryTelegramBot.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsRemind")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(true);
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("ReminderMessage")
                         .IsRequired()
@@ -54,13 +52,30 @@ namespace DiaryTelegramBot.Migrations
                     b.Property<DateTime>("ReminderTime")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("UserReminders");
+                });
+
+            modelBuilder.Entity("DiaryTelegramBot.Data.UserReminder", b =>
+                {
+                    b.HasOne("DiaryTelegramBot.Data.User", "User")
+                        .WithMany("Reminders")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("DiaryTelegramBot.Data.User", b =>
+                {
+                    b.Navigation("Reminders");
                 });
 #pragma warning restore 612, 618
         }
