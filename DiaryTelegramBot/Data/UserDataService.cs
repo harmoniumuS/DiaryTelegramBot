@@ -20,7 +20,7 @@ namespace DiaryTelegramBot.Data
             {
                 Console.WriteLine($"Creating new user: {userId}");
                 user = new User
-                {
+                {   
                     UserId = userId,
                     UserJsonData = JsonSerializer.Serialize(new Dictionary<DateTime, List<string>>())
                 };
@@ -139,6 +139,30 @@ namespace DiaryTelegramBot.Data
                 Console.WriteLine($"Ошибка при удалении данных пользователя {userId} на {date.Date}: {ex.Message}");
             }
         }
+
+        public async Task SaveRemindDataAsync(string userId, UserReminder reminder)
+        {
+            var user = GetOrCreateUserAsync(userId);
+            if (user == null)
+            {
+                Console.WriteLine($"Не удалось получить или создать пользователя с ID {userId}");
+                return;
+            }
+
+            try
+            {
+                reminder.UserId = user.Id;
+                await _context.UserReminders.AddAsync(reminder);
+                await _context.SaveChangesAsync();
+                Console.WriteLine($"Напоминание для пользователя {userId} успешно сохранено");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Ошибка при сохранении напоминания для пользователя {userId}: {e.Message}");
+                throw;
+            }
+        }
+
         private Dictionary<DateTime, List<string>> DeserializeUserData(string? jsonData)
         {
             return JsonSerializer.Deserialize<Dictionary<DateTime, List<string>>>(jsonData ?? string.Empty)

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using DiaryTelegramBot.Data;
 using DiaryTelegramBot.Handlers;
+using DiaryTelegramBot.Service;
 using DiaryTelegramBot.States;
 using DiaryTelegramBot.Wrappers;
 using Microsoft.EntityFrameworkCore;
@@ -46,8 +47,9 @@ namespace DiaryTelegramBot
             
             services.AddSingleton<BotClientWrapper>();
             
-            
-            services.AddHostedService<TelegramBotService>(); 
+            services.AddHostedService<TelegramBotService>();
+
+            services.AddHostedService<ReminderService>();
         }
     }
 }

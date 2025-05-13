@@ -89,7 +89,6 @@ namespace DiaryTelegramBot.Handlers
                     await _userStateHandler.HandleAwaitingContentState(botClient, chatId, userState, text, userId,
                         cancellationToken);
                     break;
-
                 case InputStage.AwaitingDate:
                     await _userStateHandler.HandleAwaitingDateState(chatId, userState, text, userId,
                         cancellationToken);
@@ -101,7 +100,6 @@ namespace DiaryTelegramBot.Handlers
                     await _userStateHandler.HandleAwaitingRemoveDateState(botClient, chatId, userState, text, userId,
                         cancellationToken);
                     break;
-
                 case InputStage.AwaitingRemoveChoice:
                     await _userStateHandler.HandleAwaitingRemoveChoiceState(botClient, chatId, userState, text, userId,
                         cancellationToken);

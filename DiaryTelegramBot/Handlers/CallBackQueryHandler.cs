@@ -124,7 +124,7 @@ public class CallBackQueryHandler
                     case {} data when data.StartsWith("add_remind_"):
                         if (int.TryParse(data["add_remind_".Length..], out int result))
                         {
-                            _addRemindHandler.HandleAddRemind(botClient, chatId, userId, result,
+                            await _addRemindHandler.HandleAddRemind(botClient, chatId, userId, result,
                                 cancellationToken);
                         }
                         break;
@@ -156,6 +156,15 @@ public class CallBackQueryHandler
                             
                             return;
                         }
+                        break;
+                    case "remind_offset_5":
+                        _addRemindHandler.HandleRemindOffset(botClient, chatId, userId,-5,cancellationToken);
+                        break;
+                    case "remind_offset_30":
+                        break;
+                    case "remind_offset_60":
+                        break;
+                    case "remind_offset_1440":
                         break;
 
                     default:

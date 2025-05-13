@@ -8,6 +8,5 @@
         AwaitingRemoveChoice,
         AwaitingRemind,
         AwaitingTime, 
-        AwaitingRemindOffset,
         AwaitingRemoveRemind
     }

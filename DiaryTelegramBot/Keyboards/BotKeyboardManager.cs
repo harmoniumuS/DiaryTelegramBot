@@ -70,6 +70,17 @@ namespace DiaryTelegramBot.Keyboards
 
         }
 
+        public static InlineKeyboardMarkup GetReminderKeyboard()
+        {
+            return new InlineKeyboardMarkup(new[]
+            {
+                new[] { InlineKeyboardButton.WithCallbackData("За 5 минут", "remind_offset_5") },
+                new[] { InlineKeyboardButton.WithCallbackData("За 30 минут", "remind_offset_30") },
+                new[] { InlineKeyboardButton.WithCallbackData("За 1 час", "remind_offset_60") },
+                new[] { InlineKeyboardButton.WithCallbackData("За 24 часа", "remind_offset_1440") }
+            });
+        }
+
         public static async Task SendRemoveKeyboardAsync(ITelegramBotClient botClient, long chatId, List<string> records, CancellationToken cancellationToken, 
             bool sendIntroMessage = true)
         {

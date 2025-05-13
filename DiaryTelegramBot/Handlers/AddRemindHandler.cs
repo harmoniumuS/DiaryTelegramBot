@@ -6,85 +6,111 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace DiaryTelegramBot.Handlers;
-
-public class AddRemindHandler
+namespace DiaryTelegramBot.Handlers
 {
-    private readonly UserStateService _userStateService;
-    private readonly UserDataService _userDataService;
-    private readonly BotClientWrapper _botClientWrapper;
-
-    public AddRemindHandler(UserStateService userStateService,BotClientWrapper botClientWrapper,UserDataService userDataService)
+    public class AddRemindHandler
     {
-        _userStateService = userStateService;
-        _botClientWrapper = botClientWrapper;
-        _userDataService = userDataService;
-    }
+        private readonly UserStateService _userStateService;
+        private readonly UserDataService _userDataService;
+        private readonly BotClientWrapper _botClientWrapper;
 
-    public async Task HandleAddRemind(ITelegramBotClient botClient, long chatId, string userId,
-        CancellationToken cancellationToken)
-    {
-        /*
-       botClient.SendMessage(chatId,
-           "В процессе разработки, просим прощения за неудобства...",
-           replyMarkup: new[]
-       {
-           InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu"),
-       },
-       cancellationToken: cancellationToken);
-
-    }*/
-        try
+        public AddRemindHandler(UserStateService userStateService, BotClientWrapper botClientWrapper, UserDataService userDataService)
         {
-            var userData = _userDataService.GetUserDataAsync(userId).Result;
-            var allRecords = userData
-                .SelectMany(kv => kv.Value.Select(record => $"{kv.Key:yyyy-MM-dd}: {record}"))
-                .ToList(); 
+            _userStateService = userStateService;
+            _botClientWrapper = botClientWrapper;
+            _userDataService = userDataService;
+        }
 
-            _userStateService.SetState(userId, new TempUserState
+        public async Task HandleAddRemind(ITelegramBotClient botClient, long chatId, string userId, CancellationToken cancellationToken)
+        {
+            try
             {
-                Stage = InputStage.AwaitingRemind,
-                TempRecords = allRecords
-            });
+                var userData = _userDataService.GetUserDataAsync(userId).Result;
+                var allRecords = userData
+                    .SelectMany(kv => kv.Value.Select(record => $"{kv.Key:yyyy-MM-dd HH:mm}: {record}"))
+                    .ToList();
+                
+                var userState = _userStateService.GetOrCreateState(userId);
+                
+                userState.Stage = InputStage.AwaitingRemind;
+                userState.TempRecords = allRecords;
+                
+                _userStateService.SaveState(userId, userState);
 
-            await BotKeyboardManager.SendAddRemindersKeyboard(botClient, chatId, allRecords, cancellationToken);
+                await BotKeyboardManager.SendAddRemindersKeyboard(botClient, chatId, allRecords, cancellationToken);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Ошибка при получении данных для пользователя {userId}: {e.Message}");
+                await _botClientWrapper.SendTextMessageAsync(chatId, "Произошла ошибка при обработке вашего запроса.", cancellationToken);
+            }
         }
-        catch (Exception e)
+
+        public async Task HandleAddRemind(ITelegramBotClient botClient, long chatId, string userId, int index,
+            CancellationToken cancellationToken)
         {
-            Console.WriteLine($"Ошибка при получении данных для пользователя {userId}: {e.Message}");
-            await _botClientWrapper.SendTextMessageAsync(chatId, "Произошла ошибка при обработке вашего запроса.",cancellationToken);
-        }
-    }
-
-    public async Task HandleAddRemind(ITelegramBotClient botClient, long chatId, string userId, int index,
-        CancellationToken
-            cancellationToken)
-    {
-        var state = _userStateService.GetOrCreateState(userId);
+            var userState = _userStateService.GetOrCreateState(userId);
     
-        if (state.Stage != InputStage.AwaitingRemind || state.TempRecords == null || index < 0 || index >= state.TempRecords.Count)
+            if (userState.Stage != InputStage.AwaitingRemind || userState.TempRecords == null || index < 0 || index >= userState.TempRecords.Count)
+            {
+                await _botClientWrapper.SendTextMessageAsync(chatId, "Некорректный выбор записи.", cancellationToken);
+                return;
+            }
+            
+            var selectedRecord = userState.TempRecords[index];
+            
+            var recordDateTimeString = selectedRecord.Substring(0, 16); 
+    
+            if (DateTime.TryParseExact(recordDateTimeString, "yyyy-MM-dd HH:mm", null, System.Globalization.DateTimeStyles.None, out DateTime selectedDateTime))
+            {
+                userState.TempDate = selectedDateTime.Date;
+                userState.TempTime = selectedDateTime.TimeOfDay;
+                userState.TempContent =  selectedRecord.Split(" ")[2];
+
+                await botClient.SendMessage(chatId,
+                    text: $"Вы выбрали: {selectedRecord}\nТеперь выберите смещение времени.",
+                    replyMarkup: BotKeyboardManager.GetReminderKeyboard(),
+                    cancellationToken: cancellationToken);
+            }
+            else
+            {
+                await _botClientWrapper.SendTextMessageAsync(chatId, "Ошибка при извлечении времени из записи.", cancellationToken);
+            }
+        }
+        
+        public async Task HandleRemindOffset(ITelegramBotClient botClient, long chatId, string userId, int offsetMinutes, CancellationToken cancellationToken)
         {
-            await _botClientWrapper.SendTextMessageAsync(chatId, "Некорректный выбор записи.", cancellationToken);
-            return;
+            var userState = _userStateService.GetOrCreateState(userId);
+            
+            if (userState.TempDate == DateTime.MinValue || !userState.TempTime.HasValue)
+            {
+                await _botClientWrapper.SendTextMessageAsync(chatId, "Ошибка: не выбрана дата или время.", cancellationToken);
+                return;
+            }
+
+            var remindTime = userState.TempDate.Date + userState.TempTime.Value;
+            
+            remindTime = remindTime.AddMinutes(offsetMinutes);
+            
+            userState.TempTime = remindTime.TimeOfDay;
+            
+            _userStateService.SaveState(userId, userState);
+
+            
+            var reminder = new UserReminder
+            {
+                Id = int.Parse(userId),
+                ReminderTime = remindTime,
+                ReminderMessage = userState.TempContent,
+                IsRemind = false
+            };
+            await _userDataService.SaveRemindDataAsync(userId, reminder);
+            
+            await _botClientWrapper.SendTextMessageAsync(
+                chatId,
+                $"Напоминание установлено на {remindTime:dd.MM.yyyy HH:mm} с учётом смещения на {offsetMinutes} минут.",
+                cancellationToken: cancellationToken);
         }
 
-        var selectedRecord = state.TempRecords[index];
-        state.TempRecords = new List<string> { selectedRecord };
-        state.Stage = InputStage.AwaitingRemindOffset;
-
-        var buttons = new[]
-        {
-            new[] { InlineKeyboardButton.WithCallbackData("За 5 минут", "remind_offset_5") },
-            new[] { InlineKeyboardButton.WithCallbackData("За 30 минут", "remind_offset_30") },
-            new[] { InlineKeyboardButton.WithCallbackData("За 1 час", "remind_offset_60") },
-            new[] { InlineKeyboardButton.WithCallbackData("За 24 часа", "remind_offset_1440") }
-        };
-        var keyboard = new InlineKeyboardMarkup(buttons);
-
-        await botClient.SendMessage(chatId,
-            text:$"Вы выбрали: {selectedRecord}\n",
-            replyMarkup:keyboard,
-            cancellationToken: cancellationToken);
     }
-    
 }

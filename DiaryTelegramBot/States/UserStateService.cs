@@ -44,8 +44,12 @@ public class UserStateService
 
     public void SetStateToAwaitingContent(string userId)
     {
-
         _memoryCache.Set(userId, new TempUserState { Stage = InputStage.AwaitingContent });
+    }
+
+    public void SaveState(string userId, TempUserState state)
+    {
+        _memoryCache.Set(userId, state);
     }
 }
     
