@@ -5,49 +5,53 @@ namespace DiaryTelegramBot.Data
 {
     public class UserDataService
     {
-        private readonly AppDbContext _context;
+        //для того чтобы база не закрылась раньше вызвав dispose, открываем все через IServiceScopeFactory. Почитать про него и его плюсы и минусы
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public UserDataService(AppDbContext context)
+        public UserDataService(IServiceScopeFactory scopeFactory)
         {
-            _context = context;
+            _scopeFactory = scopeFactory;
         }
 
-        private async Task<User> GetOrCreateUserAsync(string userId)
+        private async Task<User> GetOrCreateUserAsync(AppDbContext context, string userId)
         {
-            var user = await _context.Users.SingleOrDefaultAsync(u => u.UserId == userId);
+            var parsedId = int.Parse(userId);
+            var user = await context.Users.SingleOrDefaultAsync(u => u.UserId == parsedId);
 
             if (user == null)
             {
-                Console.WriteLine($"Creating new user: {userId}");
+                Console.WriteLine($"Создаем нового пользователя: {userId}");
                 user = new User
-                {   
-                    UserId = userId,
+                {
+                    UserId = parsedId,
                     UserJsonData = JsonSerializer.Serialize(new Dictionary<DateTime, List<string>>())
                 };
-                _context.Users.Add(user);
-                await _context.SaveChangesAsync();
+                context.Users.Add(user);
+                await context.SaveChangesAsync();
             }
 
             return user;
         }
 
-        private async Task<Dictionary<DateTime, List<string>>> GetUserDataFromDatabaseAsync(string userId)
+        private async Task<Dictionary<DateTime, List<string>>> GetUserDataFromDatabaseAsync(AppDbContext context, string userId)
         {
-            var user = await GetOrCreateUserAsync(userId);
+            var user = await GetOrCreateUserAsync(context, userId);
             return DeserializeUserData(user.UserJsonData);
         }
 
         public async Task SaveUserDataAsync(string userId, Dictionary<DateTime, List<string>> userData)
         {
-            var user = await GetOrCreateUserAsync(userId);
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var user = await GetOrCreateUserAsync(context, userId);
 
             try
             {
                 user.UserJsonData = SerializeUserData(userData);
-                Console.WriteLine($"Saving data for user {userId}");
+                Console.WriteLine($"Сохраняем data для {userId}");
 
-                await _context.SaveChangesAsync();
-                Console.WriteLine("Changes saved successfully");
+                await context.SaveChangesAsync();
+                Console.WriteLine("Изменения успешно сохранены!");
             }
             catch (Exception ex)
             {
@@ -57,9 +61,11 @@ namespace DiaryTelegramBot.Data
 
         public async Task AddOrUpdateUserDataAsync(string userId, DateTime date, string content)
         {
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             try
             {
-                var userData = await GetUserDataFromDatabaseAsync(userId);
+                var userData = await GetUserDataFromDatabaseAsync(context, userId);
                 var dateKey = date;
 
                 if (!userData.ContainsKey(dateKey))
@@ -74,11 +80,73 @@ namespace DiaryTelegramBot.Data
             }
         }
 
-        public async Task<List<string>> GetUserDataAsync(string userId, DateTime date)
+        public async Task<List<UserReminder>> GetUserRemindDataAync(string userId)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            try
+            {
+                int parsedUserId = int.Parse(userId);
+                var user = await context.Users
+                    .Include(u => u.Reminders)
+                    .FirstOrDefaultAsync(u => u.UserId == parsedUserId);
+
+                return user?.Reminders ?? new List<UserReminder>();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Ошибка при получении данных пользователя {userId}: {e.Message}");
+                return new List<UserReminder>();
+            }
+        }
+
+        public async Task<bool> DeleteUserRemindDataAsync(string userId, int reminderId)
         {
             try
             {
-                var userData = await GetUserDataFromDatabaseAsync(userId);
+                Console.WriteLine($"Удаление напоминания с userId={userId}, reminderId={reminderId}");
+
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                var parsedUserId = int.Parse(userId);
+                var user = await context.Users.FirstOrDefaultAsync(u => u.UserId == parsedUserId);
+                if (user == null)
+                {
+                    Console.WriteLine("Пользователь не найден.");
+                    return false;
+                }
+
+                var reminder = await context.UserReminders
+                    .FirstOrDefaultAsync(r => r.UserId == user.Id && r.Id == reminderId); 
+
+                if (reminder == null)
+                {
+                    Console.WriteLine("Напоминание не найдено.");
+                    return false;
+                }
+
+                context.UserReminders.Remove(reminder);
+                await context.SaveChangesAsync();
+
+                Console.WriteLine("Напоминание удалено.");
+                return true;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Ошибка удаления напоминания: {e.Message}");
+                return false;
+            }
+        }
+
+        public async Task<List<string>> GetUserDataAsync(string userId, DateTime date)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            try
+            {
+                var userData = await GetUserDataFromDatabaseAsync(context, userId);
                 return userData.TryGetValue(date.Date, out var records) ? records : new List<string>();
             }
             catch (Exception ex)
@@ -90,9 +158,12 @@ namespace DiaryTelegramBot.Data
 
         public async Task<Dictionary<DateTime, List<string>>> GetUserDataAsync(string userId)
         {
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
             try
             {
-                return await GetUserDataFromDatabaseAsync(userId);
+                return await GetUserDataFromDatabaseAsync(context, userId);
             }
             catch (Exception ex)
             {
@@ -103,9 +174,12 @@ namespace DiaryTelegramBot.Data
 
         public async Task RemoveUserDataAsync(string userId, DateTime date, string? content = null)
         {
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
             try
             {
-                var userData = await GetUserDataFromDatabaseAsync(userId);
+                var userData = await GetUserDataFromDatabaseAsync(context, userId);
                 var dateKey = date;
 
                 if (!userData.TryGetValue(dateKey, out var entries))
@@ -142,18 +216,15 @@ namespace DiaryTelegramBot.Data
 
         public async Task SaveRemindDataAsync(string userId, UserReminder reminder)
         {
-            var user = GetOrCreateUserAsync(userId);
-            if (user == null)
-            {
-                Console.WriteLine($"Не удалось получить или создать пользователя с ID {userId}");
-                return;
-            }
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var user = await GetOrCreateUserAsync(context, userId);
 
             try
             {
                 reminder.UserId = user.Id;
-                await _context.UserReminders.AddAsync(reminder);
-                await _context.SaveChangesAsync();
+                await context.UserReminders.AddAsync(reminder);
+                await context.SaveChangesAsync();
                 Console.WriteLine($"Напоминание для пользователя {userId} успешно сохранено");
             }
             catch (Exception e)

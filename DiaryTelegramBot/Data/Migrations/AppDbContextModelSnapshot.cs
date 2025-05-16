@@ -45,6 +45,9 @@ namespace DiaryTelegramBot.Migrations
                     b.Property<bool>("IsRemind")
                         .HasColumnType("INTEGER");
 
+                    b.Property<long>("MessageId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("ReminderMessage")
                         .IsRequired()
                         .HasColumnType("TEXT");

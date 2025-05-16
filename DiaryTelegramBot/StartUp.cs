@@ -28,11 +28,13 @@ namespace DiaryTelegramBot
             services.AddSingleton<IMemoryCache, MemoryCache>();
             services.AddSingleton<UserStateService>();
             services.AddScoped<AddRemindHandler>();
+            services.AddScoped<RemoveRemindHandler>();
             services.AddScoped<UserStateHandler>();
             services.AddScoped<UserDataService>();
             services.AddScoped<MessageHandler>();
             services.AddScoped<TelegramBotService>();
             services.AddTransient<CallBackQueryHandler>();
+            services.AddScoped<ViewAllRemindersHandler>();
             services.AddScoped<AddRecordHandler>();
             services.AddScoped<RemoveRecordHandler>();
             services.AddScoped<ViewAllRecordsHandler>();
@@ -48,7 +50,6 @@ namespace DiaryTelegramBot
             services.AddSingleton<BotClientWrapper>();
             
             services.AddHostedService<TelegramBotService>();
-
             services.AddHostedService<ReminderService>();
         }
     }

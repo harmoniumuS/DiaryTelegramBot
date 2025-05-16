@@ -17,9 +17,12 @@ namespace DiaryTelegramBot.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<UserReminder>()
-                .HasOne(ur => ur.User)
+                .HasKey(r => r.Id); 
+            modelBuilder.Entity<UserReminder>()
+                .HasOne(r => r.User)
                 .WithMany(u => u.Reminders)
-                .HasForeignKey(ur => ur.UserId);
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 

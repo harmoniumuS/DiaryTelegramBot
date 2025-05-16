@@ -81,8 +81,9 @@ namespace DiaryTelegramBot.Keyboards
             });
         }
 
+        
         public static async Task SendRemoveKeyboardAsync(ITelegramBotClient botClient, long chatId, List<string> records, CancellationToken cancellationToken, 
-            bool sendIntroMessage = true)
+            bool sendIntroMessage = true,bool iSReminderKeyboard =false)
         {
             if (records.Count == 0)
             {
@@ -92,29 +93,56 @@ namespace DiaryTelegramBot.Keyboards
                     cancellationToken: cancellationToken);
                 return;
             }
-        
-            var keyboard = new InlineKeyboardMarkup(
-                records.Select((record, index) =>
-                    {
-                        var displayText = record.Length > 30
-                            ? record.Substring(0, 30) + "..."
-                            : record;
 
-                        return new[] { InlineKeyboardButton.WithCallbackData($"{index + 1}. {displayText}", $"delete_{index}") };
-                    })
-                    .Append(new[] { InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu") })
-                    .ToArray()
-            );
+            if (iSReminderKeyboard)
+            {
+                var reminderKeyboard = new InlineKeyboardMarkup(
+                    records.Select((record, index) =>
+                        {
+                            var displayText = record.Length > 30
+                                ? record.Substring(0, 30) + "..."
+                                : record;
 
-            var messageText = sendIntroMessage
-                ? "Выберите запись для удаления:"
-                : "Обновлённый список записей:";
+                            return new[] { InlineKeyboardButton.WithCallbackData($"{index + 1}. {displayText}", $"deleteReminder_{index}") };
+                        })
+                        .Append(new[] { InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu") })
+                        .ToArray()
+                );
+                var messageText = sendIntroMessage
+                    ? "Выберите запись для удаления:"
+                    : "Обновлённый список записей:";
 
-            await botClient.SendMessage(
-                chatId,
-                messageText,
-                replyMarkup: keyboard,
-                cancellationToken: cancellationToken);
+                await botClient.SendMessage(
+                    chatId,
+                    messageText,
+                    replyMarkup: reminderKeyboard,
+                    cancellationToken: cancellationToken);
+            }
+            else
+            {
+                var keyboard = new InlineKeyboardMarkup(
+                    records.Select((record, index) =>
+                        {
+                            var displayText = record.Length > 30
+                                ? record.Substring(0, 30) + "..."
+                                : record;
+
+                            return new[] { InlineKeyboardButton.WithCallbackData($"{index + 1}. {displayText}", $"delete_{index}") };
+                        })
+                        .Append(new[] { InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu") })
+                        .ToArray()
+                );
+                var messageText = sendIntroMessage
+                    ? "Выберите запись для удаления:"
+                    : "Обновлённый список записей:";
+
+                await botClient.SendMessage(
+                    chatId,
+                    messageText,
+                    replyMarkup: keyboard,
+                    cancellationToken: cancellationToken);
+            }
+            
         }
         public static async Task SendAddRecordsKeyboardAsync(ITelegramBotClient botClient, long chatId,
             CancellationToken cancellationToken,DateTime date)

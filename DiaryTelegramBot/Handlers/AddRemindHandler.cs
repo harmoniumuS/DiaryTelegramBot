@@ -99,17 +99,40 @@ namespace DiaryTelegramBot.Handlers
             
             var reminder = new UserReminder
             {
-                Id = int.Parse(userId),
+                UserId = int.Parse(userId),
                 ReminderTime = remindTime,
                 ReminderMessage = userState.TempContent,
                 IsRemind = false
             };
             await _userDataService.SaveRemindDataAsync(userId, reminder);
+            switch (offsetMinutes)
+            {
+                case -5:
+                    await _botClientWrapper.SendTextMessageAsync(
+                        chatId,
+                        $"Напоминание установлено на {remindTime:dd.MM.yyyy HH:mm}, я напомню за 5 минут до события.",
+                        cancellationToken: cancellationToken);
+                    break;
+                case -30:
+                    await _botClientWrapper.SendTextMessageAsync(
+                        chatId,
+                        $"Напоминание установлено на {remindTime:dd.MM.yyyy HH:mm}, я напомню за 30 минут до события.",
+                        cancellationToken: cancellationToken);
+                    break;
+                case -60:
+                    await _botClientWrapper.SendTextMessageAsync(
+                        chatId,
+                        $"Напоминание установлено на {remindTime:dd.MM.yyyy HH:mm}, я напомню за час  до события.",
+                        cancellationToken: cancellationToken);
+                    break;
+                case -1440:
+                    await _botClientWrapper.SendTextMessageAsync(
+                        chatId,
+                        $"Напоминание установлено на {remindTime:dd.MM.yyyy HH:mm}, я напомню за 24 часа до события.",
+                        cancellationToken: cancellationToken);
+                    break;
+            }
             
-            await _botClientWrapper.SendTextMessageAsync(
-                chatId,
-                $"Напоминание установлено на {remindTime:dd.MM.yyyy HH:mm} с учётом смещения на {offsetMinutes} минут.",
-                cancellationToken: cancellationToken);
         }
 
     }

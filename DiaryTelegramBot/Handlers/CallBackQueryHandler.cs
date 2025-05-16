@@ -10,24 +10,26 @@ namespace DiaryTelegramBot.Handlers;
 public class CallBackQueryHandler
 {
     private readonly BotClientWrapper _botClientWrapper;
-    private readonly UserDataService _userDataService;
+    private readonly ViewAllRemindersHandler _viewAllRemindersHandler;
     private readonly UserStateService _userStateService;
     private readonly AddRecordHandler _addRecordHandler;
     private readonly AddRemindHandler _addRemindHandler;
+    private readonly RemoveRemindHandler _removeRemindHandler;
     private readonly RemoveRecordHandler _removeRecordHandler;
     private readonly ViewAllRecordsHandler _viewAllRecordsHandler;
 
-    public CallBackQueryHandler(BotClientWrapper botClientWrapper, UserDataService userDataService, 
+    public CallBackQueryHandler(BotClientWrapper botClientWrapper, 
         UserStateService userStateService, AddRecordHandler addRecordHandler,RemoveRecordHandler removeRecordHandler
-        , ViewAllRecordsHandler viewAllRecordsHandler, AddRemindHandler addRemindHandler)
+        , ViewAllRecordsHandler viewAllRecordsHandler, AddRemindHandler addRemindHandler, RemoveRemindHandler removeRemindHandler,ViewAllRemindersHandler viewAllRemindersHandler)
     {
         _botClientWrapper = botClientWrapper;
-        _userDataService = userDataService;
         _userStateService = userStateService;
         _addRecordHandler = addRecordHandler;
         _removeRecordHandler= removeRecordHandler;
         _viewAllRecordsHandler = viewAllRecordsHandler;
         _addRemindHandler = addRemindHandler;
+        _removeRemindHandler = removeRemindHandler;
+        _viewAllRemindersHandler = viewAllRemindersHandler;
     }
      public async Task HandleCallbackQueryAsync(ITelegramBotClient botClient, CallbackQuery callbackQuery, CancellationToken cancellationToken)
             {
@@ -50,7 +52,6 @@ public class CallBackQueryHandler
                     case "remove_record":
                         _removeRecordHandler.HandleRemoveRecord(botClient, chatId, userId, cancellationToken);
                         break;
-
                     case "view_records":
                         await _viewAllRecordsHandler.HandleViewRecords(botClient, chatId, userId, cancellationToken);
                         break;
@@ -60,6 +61,12 @@ public class CallBackQueryHandler
                         break;
                     case "add_reminder":
                         await _addRemindHandler.HandleAddRemind(botClient, chatId, userId, cancellationToken);
+                        break;
+                    case "remove_reminder":
+                        _removeRemindHandler.HandleRemoveRemind(botClient, chatId, userId, cancellationToken);
+                        break;
+                    case "view_reminders":
+                        _viewAllRemindersHandler.HandleViewReminders(botClient, chatId, userId, cancellationToken);
                         break;
                     
                     case { } dataCalendar when dataCalendar.StartsWith("calendar:day:"):
@@ -128,6 +135,33 @@ public class CallBackQueryHandler
                                 cancellationToken);
                         }
                         break;
+                    case {} data when data.StartsWith("deleteReminder_"):
+                        if (int.TryParse(data["deleteReminder_".Length..], out int indexRemind))
+                        {
+                            _removeRemindHandler.HandleRemoveRemind(botClient, chatId, userId, indexRemind, cancellationToken);
+                        }
+                        else
+                        {
+                            try
+                            {
+                                await botClient.AnswerCallbackQuery(
+                                    callbackQuery.Id,           
+                                    text: "Невозможно удалить запись. Некорректный индекс.",   
+                                    showAlert: true,           
+                                    cancellationToken: cancellationToken
+                                );
+                            }
+                            catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.Message.Contains("query is too old"))
+                            {
+                                Console.WriteLine("CallbackQuery is too old to answer: " + ex.Message);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine("Unexpected error in AnswerCallbackQuery: " + ex.Message);
+                            }
+                            return;
+                        }
+                        break;
                     case { } data when data.StartsWith("delete_"):
                         if (int.TryParse(data["delete_".Length..], out int index))
                         {
@@ -153,18 +187,20 @@ public class CallBackQueryHandler
                             {
                                 Console.WriteLine("Unexpected error in AnswerCallbackQuery: " + ex.Message);
                             }
-                            
                             return;
                         }
                         break;
                     case "remind_offset_5":
-                        _addRemindHandler.HandleRemindOffset(botClient, chatId, userId,-5,cancellationToken);
+                        await _addRemindHandler.HandleRemindOffset(botClient, chatId, userId,-5,cancellationToken);
                         break;
                     case "remind_offset_30":
+                        await _addRemindHandler.HandleRemindOffset(botClient, chatId, userId,-30,cancellationToken);
                         break;
                     case "remind_offset_60":
+                        await _addRemindHandler.HandleRemindOffset(botClient, chatId, userId,-60,cancellationToken);
                         break;
                     case "remind_offset_1440":
+                        await _addRemindHandler.HandleRemindOffset(botClient, chatId, userId,-1440,cancellationToken);
                         break;
 
                     default:

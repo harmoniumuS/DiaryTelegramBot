@@ -152,39 +152,5 @@ public class UserStateHandler
                 await _botClientWrapper.SendTextMessageAsync(chatId, "Неверный выбор, выберите корректный номер записи для удаления.", cancellationToken);
             }
         }
-
-        public async Task HandleAwaitingTimeOffsetState(long chatId, TempUserState userState, string? text, string userId, CancellationToken cancellationToken)
-        {
-            if (!int.TryParse(text, out int offsetMinutes))
-            {
-                return;
-            }
-
-            var userStateOffset = _userStateService.GetOrCreateState(userId);
-
-            // Проверка, выбрана ли дата и время
-            if (userStateOffset.TempDate == DateTime.MinValue || !userStateOffset.TempTime.HasValue)
-            {
-                return;
-            }
-            
-            var remindTime = userStateOffset.TempDate.Date + userStateOffset.TempTime.Value;
-            remindTime = remindTime.AddMinutes(offsetMinutes);
-            
-            var reminder = new UserReminder
-            {
-                UserId = int.Parse(userId),
-                ReminderTime = remindTime,
-                ReminderMessage = userStateOffset.TempContent,
-                IsRemind = false
-            };
-            
-            await _userDataService.SaveRemindDataAsync(userId, reminder);
-            
-            await _botClientWrapper.SendTextMessageAsync(
-                chatId,
-                $"Напоминание установлено на {remindTime:dd.MM.yyyy HH:mm} с учётом смещения на {offsetMinutes} минут.",
-                cancellationToken: cancellationToken);
-        }
-
+    
 }

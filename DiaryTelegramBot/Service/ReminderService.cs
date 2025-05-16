@@ -16,6 +16,7 @@ public class ReminderService:BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        Console.WriteLine("ReminderService: ExecuteAsync стартовал");
         while (!stoppingToken.IsCancellationRequested)
         {
             using var scope = _serviceProvider.CreateScope();
@@ -24,8 +25,8 @@ public class ReminderService:BackgroundService
 
             var reminders = await context.UserReminders
                 .Where(r => !r.IsRemind &&
-                            r.ReminderTime <= now.AddMinutes(5) &&
-                            r.ReminderTime > now)
+                            r.ReminderTime <= now.AddMinutes(1) 
+                            && r.ReminderTime >= now.AddSeconds(-30))
                 .Include(r => r.User)
                 .ToListAsync(stoppingToken);
 
@@ -35,8 +36,7 @@ public class ReminderService:BackgroundService
                 var message = remind.ReminderMessage;
                 try
                 {
-                    await SendTelegramMessageAsync(telegramUserId, $"Напоминание: {message}");
-                    remind.IsRemind = true;
+                    await _botClient.SendMessage(telegramUserId, $"Напоминаю об: {message}");
                     context.UserReminders.Remove(remind);
                 }
                 catch (Exception ex)
@@ -48,9 +48,5 @@ public class ReminderService:BackgroundService
             await context.SaveChangesAsync(stoppingToken);
             await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
         }
-    }
-    private Task SendTelegramMessageAsync(string chatId, string message)
-    {
-       return _botClient.SendMessage(chatId, message);
     }
 }

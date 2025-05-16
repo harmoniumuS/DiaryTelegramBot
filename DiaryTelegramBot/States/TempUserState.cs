@@ -10,4 +10,7 @@ public class TempUserState
     public DateTime TempDate { get; set; }
     public TimeSpan? TempTime { get; set; }
     public List<string> TempRecords { get; set; } = new();
+    public List<string> TempReminders { get; set; } = new();
+    
+    public List<int> TempReminderIds { get; set; } = new ();
 }
