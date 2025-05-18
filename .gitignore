@@ -10,6 +10,7 @@ out/
 *.ldf
 *.ndf
 data.db
+identifier.sqlite
 
 # 👉 JetBrains Rider / IntelliJ IDEA
 .idea/
