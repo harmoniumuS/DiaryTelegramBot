@@ -200,3 +200,4 @@ DiaryTelegramBot/Data/Migrations/
 *.sql
 Initial*.sql
 init*.sql
+.idea/.idea.DiaryTelegramBot/.idea
