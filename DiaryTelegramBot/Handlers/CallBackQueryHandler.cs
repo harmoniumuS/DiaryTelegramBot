@@ -69,9 +69,9 @@ public class CallBackQueryHandler
                         _viewAllRemindersHandler.HandleViewReminders(botClient, chatId, userId, cancellationToken);
                         break;
                     
-                    case { } dataCalendar when dataCalendar.StartsWith("calendar:day:"):
+                    case { } dataCalendar when dataCalendar.StartsWith("date:"):
                         {
-                            var datePart = dataCalendar.Substring("calendar:day:".Length);
+                            var datePart = dataCalendar.Substring("date:".Length);
                             if (DateTime.TryParse(datePart, out var parsedDate))
                             {
                                 var userStateCalendar = _userStateService.GetOrCreateState(userId);

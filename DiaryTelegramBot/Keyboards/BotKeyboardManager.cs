@@ -150,7 +150,7 @@ namespace DiaryTelegramBot.Keyboards
             var calendarButtons = _calendarBuilder.GenerateCalendarButtons(
                 date.Year,
                 date.Month,
-                CalendarViewType.Default,
+                CalendarViewType.Weekly,
                 "ru");
             var buttons = calendarButtons.InlineKeyboard.ToList();
             buttons.Add([InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu")]);
@@ -166,7 +166,7 @@ namespace DiaryTelegramBot.Keyboards
             var calendarButtons = _calendarBuilder.GenerateCalendarButtons(
                 date.Year,
                 date.Month,
-                CalendarViewType.Default,
+                CalendarViewType.Weekly,
                 "ru");
             var buttons = calendarButtons.InlineKeyboard.ToList();
 
