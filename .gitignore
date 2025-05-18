@@ -4,6 +4,7 @@ obj/
 out/
 *.log
 
+
 # 👉 Базы данных
 *.mdf
 *.ldf
@@ -11,7 +12,7 @@ out/
 
 # 👉 JetBrains Rider / IntelliJ IDEA
 .idea/
-
+.idea/.idea.DiaryTelegramBot/.idea
 # 👉 Visual Studio
 .vs/
 *.user
