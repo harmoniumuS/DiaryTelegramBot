@@ -9,6 +9,7 @@ out/
 *.mdf
 *.ldf
 *.ndf
+data.db
 
 # 👉 JetBrains Rider / IntelliJ IDEA
 .idea/
