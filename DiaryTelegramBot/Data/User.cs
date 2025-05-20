@@ -8,8 +8,8 @@ namespace DiaryTelegramBot.Data
 {
     public class User
     {
-        public int Id { get; set; }
-        public int UserId { get; set; }
+        public long Id { get; set; }
+        public long UserId { get; set; }
         public string UserJsonData { get; set; }
 
         public List<UserReminder> Reminders { get; set; } = new();

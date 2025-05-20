@@ -31,7 +31,7 @@ public class CallBackQueryHandler
         _removeRemindHandler = removeRemindHandler;
         _viewAllRemindersHandler = viewAllRemindersHandler;
     }
-     public async Task HandleCallbackQueryAsync(ITelegramBotClient botClient, CallbackQuery callbackQuery, CancellationToken cancellationToken)
+     public async Task HandleCallbackQueryAsync(ITelegramBotClient botClient, CallbackQuery? callbackQuery, CancellationToken cancellationToken)
             {
             var userId = callbackQuery?.From?.Id.ToString();
             if (string.IsNullOrEmpty(userId))

@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.Design;
-using DiaryTelegramBot.Data;
+﻿using DiaryTelegramBot.Data;
 using DiaryTelegramBot.Keyboards;
 using DiaryTelegramBot.States;
 using DiaryTelegramBot.Wrappers;
@@ -22,7 +21,7 @@ public class UserStateHandler
     }
 
     public async Task HandleAwaitingContentState(ITelegramBotClient botClient, long chatId, TempUserState userState,
-        string text, string userId, CancellationToken cancellationToken)
+        string? text, string userId, CancellationToken cancellationToken)
     {
         userState.TempContent = text;
         userState.Stage = InputStage.AwaitingDate;
@@ -30,7 +29,7 @@ public class UserStateHandler
         await BotKeyboardManager.SendAddRecordsKeyboardAsync(botClient, chatId, cancellationToken, DateTime.Now);
     }
 
-    public async Task HandleAwaitingDateState(long chatId, TempUserState userState, string text, string userId,
+    public async Task HandleAwaitingDateState(long chatId, TempUserState userState, string? text, string userId,
         CancellationToken cancellationToken)
     {
         if (text == "/today")
@@ -59,7 +58,7 @@ public class UserStateHandler
         }
     }
 
-    public async Task HandleAwaitingTimeState(long chatId, TempUserState userState, string text, string userId, CancellationToken cancellationToken)
+    public async Task HandleAwaitingTimeState(long chatId, TempUserState userState, string? text, string userId, CancellationToken cancellationToken)
     {
         if (TimeSpan.TryParse(text, out var parsedTime))
         {
@@ -97,7 +96,7 @@ public class UserStateHandler
         }
     }
 
-    public async Task HandleAwaitingRemoveDateState(ITelegramBotClient botClient, long chatId, TempUserState userState, string text, string userId, CancellationToken cancellationToken)
+    public async Task HandleAwaitingRemoveDateState(ITelegramBotClient botClient, long chatId, TempUserState userState, string? text, string userId, CancellationToken cancellationToken)
         {
             if (DateTime.TryParse(text, out var removedDate))
             {
@@ -138,7 +137,7 @@ public class UserStateHandler
             }
             
         }
-        public async Task HandleAwaitingRemoveChoiceState(ITelegramBotClient botClient, long chatId, TempUserState userState, string text, string userId, CancellationToken cancellationToken)
+        public async Task HandleAwaitingRemoveChoiceState(ITelegramBotClient botClient, long chatId, TempUserState userState, string? text, string userId, CancellationToken cancellationToken)
         {
             if (int.TryParse(text, out int index) && index > 0 && index <= userState.TempRecords.Count)
             {

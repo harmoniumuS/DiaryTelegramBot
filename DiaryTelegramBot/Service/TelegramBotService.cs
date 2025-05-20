@@ -1,14 +1,8 @@
 using DiaryTelegramBot.Data;
 using DiaryTelegramBot.Handlers;
-using DiaryTelegramBot.Options;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
 
 public class TelegramBotService : BackgroundService
 {
@@ -33,14 +27,12 @@ public class TelegramBotService : BackgroundService
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Database.EnsureCreated();
         }
-
-        // ????????? ????????? ??????????
+        
         _botClient.StartReceiving(
             updateHandler: HandleUpdateAsync,
             errorHandler: HandlePollingErrorAsync,
             cancellationToken: stoppingToken);
-
-        // ??????? ?????? (????? ?? ????????? ??????)
+        
         await Task.Delay(-1, stoppingToken);
     }
 

@@ -100,7 +100,7 @@ namespace DiaryTelegramBot.Data
             }
         }
 
-        public async Task<bool> DeleteUserRemindDataAsync(string userId, int reminderId)
+        public async Task<bool> DeleteUserRemindDataAsync(string userId, long reminderId)
         {
             try
             {
