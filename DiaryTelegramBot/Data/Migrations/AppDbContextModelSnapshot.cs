@@ -19,13 +19,12 @@ namespace DiaryTelegramBot.Migrations
 
             modelBuilder.Entity("DiaryTelegramBot.Data.User", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
+                    b.Property<long>("UserId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("UserJsonData")
                         .IsRequired()
@@ -38,14 +37,11 @@ namespace DiaryTelegramBot.Migrations
 
             modelBuilder.Entity("DiaryTelegramBot.Data.UserReminder", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsRemind")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("MessageId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("ReminderMessage")
@@ -55,7 +51,7 @@ namespace DiaryTelegramBot.Migrations
                     b.Property<DateTime>("ReminderTime")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("UserId")
+                    b.Property<long>("UserId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
