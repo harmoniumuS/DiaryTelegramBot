@@ -1,5 +1,5 @@
 ﻿namespace DiaryTelegramBot.States;
-    public enum InputStage
+    public enum UserStatus
     {
         None,
         AwaitingContent,

@@ -12,19 +12,19 @@ public class CallBackQueryHandler
     private readonly BotClientWrapper _botClientWrapper;
     private readonly ViewAllRemindersHandler _viewAllRemindersHandler;
     private readonly UserStateService _userStateService;
-    private readonly AddRecordHandler _addRecordHandler;
+    private readonly AddRecordState _addRecordState;
     private readonly AddRemindHandler _addRemindHandler;
     private readonly RemoveRemindHandler _removeRemindHandler;
     private readonly RemoveRecordHandler _removeRecordHandler;
     private readonly ViewAllRecordsHandler _viewAllRecordsHandler;
 
     public CallBackQueryHandler(BotClientWrapper botClientWrapper, 
-        UserStateService userStateService, AddRecordHandler addRecordHandler,RemoveRecordHandler removeRecordHandler
+        UserStateService userStateService, AddRecordState addRecordState,RemoveRecordHandler removeRecordHandler
         , ViewAllRecordsHandler viewAllRecordsHandler, AddRemindHandler addRemindHandler, RemoveRemindHandler removeRemindHandler,ViewAllRemindersHandler viewAllRemindersHandler)
     {
         _botClientWrapper = botClientWrapper;
         _userStateService = userStateService;
-        _addRecordHandler = addRecordHandler;
+        _addRecordState = addRecordState;
         _removeRecordHandler= removeRecordHandler;
         _viewAllRecordsHandler = viewAllRecordsHandler;
         _addRemindHandler = addRemindHandler;
@@ -45,8 +45,8 @@ public class CallBackQueryHandler
                 {
                     case "add_record":
                         var userState = _userStateService.GetOrCreateState(userId);
-                        userState.Stage = InputStage.AwaitingContent;
-                        await _addRecordHandler.HandleAddRecord(botClient, chatId, userId, cancellationToken);
+                        userState.Stage = UserStatus.AwaitingContent;
+                        await _addRecordState.HandleAddRecord(botClient, chatId, userId, cancellationToken);
                         break;
 
                     case "remove_record":
@@ -76,16 +76,16 @@ public class CallBackQueryHandler
                             {
                                 var userStateCalendar = _userStateService.GetOrCreateState(userId);
 
-                                if (userStateCalendar.Stage == InputStage.AwaitingDate)
+                                if (userStateCalendar.Stage == UserStatus.AwaitingDate)
                                 {
                                     userStateCalendar.TempDate = parsedDate;
-                                    userStateCalendar.Stage = InputStage.None;
+                                    userStateCalendar.Stage = UserStatus.None;
                                     
                                         await _botClientWrapper.SendTextMessageAsync(
                                             chatId,
                                             $"Вы выбрали дату: {parsedDate:dd.MM.yyyy}. Теперь введите время (в формате ЧЧ:ММ):",
                                             cancellationToken: cancellationToken);
-                                        userStateCalendar.Stage = InputStage.AwaitingTime;
+                                        userStateCalendar.Stage = UserStatus.AwaitingTime;
                                 }
                                 else
                                 {

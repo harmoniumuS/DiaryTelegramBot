@@ -1,4 +1,5 @@
 ﻿using Telegram.Bot;
+using Telegram.Bot.Types.ReplyMarkups;
 
 
 namespace DiaryTelegramBot.Wrappers
@@ -12,7 +13,8 @@ namespace DiaryTelegramBot.Wrappers
             _botClient = botClient;
         }
 
-        public async Task SendTextMessageAsync(long chatId,string text,CancellationToken cancellationToken)
+        public async Task SendTextMessageAsync(long chatId, string text, InlineKeyboardButton[] replyMarkup,
+            CancellationToken cancellationToken)
         {
             await _botClient.SendMessage(chatId, text, cancellationToken: cancellationToken);
         }

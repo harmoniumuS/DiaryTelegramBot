@@ -23,7 +23,7 @@ public class ViewAllRemindersHandler
             if (reminders.Any())
             {
                 var message = string.Join("\n", reminders.Select(r =>
-                    $"{r.ReminderTime:yyyy-MM-dd HH:mm} — {r.ReminderMessage}"
+                    $"{r.Time:yyyy-MM-dd HH:mm} — {r.Message}"
                 ));
 
                 await _botClientWrapper.SendTextMessageAsync(chatId, message, cancellationToken);

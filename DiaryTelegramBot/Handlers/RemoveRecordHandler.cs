@@ -35,7 +35,7 @@ public class RemoveRecordHandler
 
             _userStateService.SetState(userId, new TempUserState
             {
-                Stage = InputStage.AwaitingRemoveChoice,
+                Stage = UserStatus.AwaitingRemoveChoice,
                 TempRecords = allRecords
             });
 
@@ -91,7 +91,7 @@ public class RemoveRecordHandler
             {
                 _userStateService.SetState(userId, new TempUserState()
                 {
-                    Stage = InputStage.AwaitingRemoveChoice,
+                    Stage = UserStatus.AwaitingRemoveChoice,
                     TempRecords = updateRecords
                 });
                 await BotKeyboardManager.SendRemoveKeyboardAsync(botClient, chatId, updateRecords, cancellationToken, sendIntroMessage: false);

@@ -10,13 +10,11 @@ namespace DiaryTelegramBot.Handlers
 {
     public class AddRemindHandler
     {
-        private readonly UserStateService _userStateService;
         private readonly UserDataService _userDataService;
         private readonly BotClientWrapper _botClientWrapper;
 
-        public AddRemindHandler(UserStateService userStateService, BotClientWrapper botClientWrapper, UserDataService userDataService)
+        public AddRemindHandler( BotClientWrapper botClientWrapper, UserDataService userDataService)
         {
-            _userStateService = userStateService;
             _botClientWrapper = botClientWrapper;
             _userDataService = userDataService;
         }
@@ -32,7 +30,7 @@ namespace DiaryTelegramBot.Handlers
                 
                 var userState = _userStateService.GetOrCreateState(userId);
                 
-                userState.Stage = InputStage.AwaitingRemind;
+                userState.Stage = UserStatus.AwaitingRemind;
                 userState.TempRecords = allRecords;
                 
                 _userStateService.SaveState(userId, userState);
@@ -51,7 +49,7 @@ namespace DiaryTelegramBot.Handlers
         {
             var userState = _userStateService.GetOrCreateState(userId);
     
-            if (userState.Stage != InputStage.AwaitingRemind || userState.TempRecords == null || index < 0 || index >= userState.TempRecords.Count)
+            if (userState.Stage != UserStatus.AwaitingRemind || userState.TempRecords == null || index < 0 || index >= userState.TempRecords.Count)
             {
                 await _botClientWrapper.SendTextMessageAsync(chatId, "Некорректный выбор записи.", cancellationToken);
                 return;
@@ -97,11 +95,11 @@ namespace DiaryTelegramBot.Handlers
             _userStateService.SaveState(userId, userState);
 
             
-            var reminder = new UserReminder
+            var reminder = new Remind
             {
                 UserId = int.Parse(userId),
-                ReminderTime = remindTime,
-                ReminderMessage = userState.TempContent,
+                Time = remindTime,
+                Message = userState.TempContent,
                 IsRemind = false
             };
             await _userDataService.SaveRemindDataAsync(userId, reminder);

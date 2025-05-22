@@ -80,23 +80,23 @@ namespace DiaryTelegramBot.Handlers
                 var userState = _userStateService.GetOrCreateState(userId);
                 switch (userState.Stage)
                 {
-                    case InputStage.AwaitingContent:
+                    case UserStatus.AwaitingContent:
 
                         await _userStateHandler.HandleAwaitingContentState(botClient, chatId, userState, text, userId,
                             cancellationToken);
                         break;
-                    case InputStage.AwaitingDate:
+                    case UserStatus.AwaitingDate:
                         await _userStateHandler.HandleAwaitingDateState(chatId, userState, text, userId,
                             cancellationToken);
                         break;
-                    case InputStage.AwaitingTime:
+                    case UserStatus.AwaitingTime:
                         await _userStateHandler.HandleAwaitingTimeState(chatId, userState, text, userId,cancellationToken);
                         break;
-                    case InputStage.AwaitingRemoveDate:
+                    case UserStatus.AwaitingRemoveDate:
                         await _userStateHandler.HandleAwaitingRemoveDateState(botClient, chatId, userState, text, userId,
                             cancellationToken);
                         break;
-                    case InputStage.AwaitingRemoveChoice:
+                    case UserStatus.AwaitingRemoveChoice:
                         await _userStateHandler.HandleAwaitingRemoveChoiceState(botClient, chatId, userState, text, userId,
                             cancellationToken);
                         break;

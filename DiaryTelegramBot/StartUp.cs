@@ -26,7 +26,6 @@ namespace DiaryTelegramBot
                 options.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
             
             services.AddSingleton<IMemoryCache, MemoryCache>();
-            services.AddSingleton<UserStateService>();
             services.AddScoped<AddRemindHandler>();
             services.AddScoped<RemoveRemindHandler>();
             services.AddScoped<UserStateHandler>();
@@ -35,7 +34,7 @@ namespace DiaryTelegramBot
             services.AddScoped<TelegramBotService>();
             services.AddTransient<CallBackQueryHandler>();
             services.AddScoped<ViewAllRemindersHandler>();
-            services.AddScoped<AddRecordHandler>();
+            services.AddScoped<AddRecordState>();
             services.AddScoped<RemoveRecordHandler>();
             services.AddScoped<ViewAllRecordsHandler>();
             
@@ -50,7 +49,7 @@ namespace DiaryTelegramBot
             services.AddSingleton<BotClientWrapper>();
             
             services.AddHostedService<TelegramBotService>();
-            services.AddHostedService<ReminderService>();
+            services.AddHostedService<ReminderWorker>();
         }
     }
 }

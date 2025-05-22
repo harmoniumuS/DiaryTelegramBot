@@ -44,7 +44,6 @@ namespace DiaryTelegramBot.Data
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var user = await GetOrCreateUserAsync(context, userId);
-
             try
             {
                 user.UserJsonData = SerializeUserData(userData);
@@ -80,7 +79,7 @@ namespace DiaryTelegramBot.Data
             }
         }
 
-        public async Task<List<UserReminder>> GetUserRemindDataAync(string userId)
+        public async Task<List<Remind>> GetUserRemindDataAync(string userId)
         {
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -91,12 +90,12 @@ namespace DiaryTelegramBot.Data
                     .Include(u => u.Reminders)
                     .FirstOrDefaultAsync(u => u.UserId == parsedUserId);
 
-                return user?.Reminders ?? new List<UserReminder>();
+                return user?.Reminders ?? new List<Remind>();
             }
             catch (Exception e)
             {
                 Console.WriteLine($"Ошибка при получении данных пользователя {userId}: {e.Message}");
-                return new List<UserReminder>();
+                return new List<Remind>();
             }
         }
 
@@ -214,7 +213,7 @@ namespace DiaryTelegramBot.Data
             }
         }
 
-        public async Task SaveRemindDataAsync(string userId, UserReminder reminder)
+        public async Task SaveRemindDataAsync(string userId, Remind reminder)
         {
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();

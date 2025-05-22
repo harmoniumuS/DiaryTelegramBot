@@ -29,12 +29,12 @@ public class RemoveRemindHandler
             }
 
             var formattedReminders = userDataRemind
-                .Select(r => $"{r.ReminderTime:yyyy-MM-dd HH:mm} | {r.ReminderMessage}")
+                .Select(r => $"{r.Time:yyyy-MM-dd HH:mm} | {r.Message}")
                 .ToList();
             var reminderIds = userDataRemind.Select(r => r.Id).ToList();
             _userStateService.SetState(userId, new TempUserState
             {
-                Stage = InputStage.AwaitingRemoveRemind,
+                Stage = UserStatus.AwaitingRemoveRemind,
                 TempReminders = formattedReminders,
                 TempReminderIds = reminderIds
             });
@@ -80,14 +80,14 @@ public class RemoveRemindHandler
         }
 
         var formattedReminders = updatedUserRemind
-            .Select(r => $"{r.ReminderTime:yyyy-MM-dd HH:mm} | {r.ReminderMessage}")
+            .Select(r => $"{r.Time:yyyy-MM-dd HH:mm} | {r.Message}")
             .ToList();
 
         var reminderIds = updatedUserRemind.Select(r => r.Id).ToList();
 
         _userStateService.SetState(userId, new TempUserState
         {
-            Stage = InputStage.AwaitingRemoveRemind,
+            Stage = UserStatus.AwaitingRemoveRemind,
             TempReminders = formattedReminders,
             TempReminderIds = reminderIds
         });
