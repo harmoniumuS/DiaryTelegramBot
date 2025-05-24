@@ -9,7 +9,7 @@ namespace DiaryTelegramBot.Models
         public long Id { get; set; }
         public UserStatus CurrentStatus { get; set; } = UserStatus.None;
         public Record TempRecord { get; set; }
-        public int SelectedIndexRecord { get; set; }
+        public int SelectedIndex { get; set; }
         public IReadOnlyList<Record> Messages => _messages;
         public IReadOnlyList<Remind> Reminders => _reminders;
         private List<Record> _messages = new List<Record>();

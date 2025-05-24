@@ -98,6 +98,6 @@ public class AddRemindState : IState
 
         await _botClient.SendMessage(chatId, message, cancellationToken: cancellationToken);
         user.CurrentStatus = UserStatus.None;
-        user.TempRecord = new(); // очистка
+        user.TempRecord = new(); 
     }
 }

@@ -25,13 +25,13 @@ namespace DiaryTelegramBot
             services.AddDbContext<RemindContext>(options =>
                 options.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
             services.AddScoped<AddRemindState>();
-            services.AddScoped<RemoveRemindHandler>();
+            services.AddScoped<RemoveRemindState>();
             services.AddScoped<UserStateHandler>();
             services.AddScoped<UserContext>();
             services.AddScoped<MessageHandler>();
             services.AddScoped<TelegramBotService>();
             services.AddTransient<CallBackQueryHandler>();
-            services.AddScoped<ViewAllRemindersHandler>();
+            services.AddScoped<ViewAllRemindersState>();
             services.AddScoped<AddRecordState>();
             services.AddScoped<RemoveRecordState>();
             services.AddScoped<ViewAllRecordsState>();
@@ -47,6 +47,7 @@ namespace DiaryTelegramBot
             services.AddSingleton<BotClientWrapper>();
             
             services.AddHostedService<TelegramBotService>();
+            services.AddHostedService<ReminderWorker.ReminderWorker>();
         }
     }
 }

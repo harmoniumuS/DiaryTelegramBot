@@ -9,5 +9,9 @@
         AwaitingGetAllRecords,
         AwaitingRemoveRecord,
         AwaitingRemind,
+        AwaitingRemoveRemind,
         AwaitingRemoveChoice,
+        AwaitingOffsetRemind,
+        AwaitingGetAllReminds,
+        AwaitingRemoveChoiceRemind
     }

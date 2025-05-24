@@ -108,6 +108,32 @@ namespace DiaryTelegramBot.Data
             remindContext.Reminds.Add(remind);
             await remindContext.SaveChangesAsync();
         }
+        public async Task<List<Remind>> GetUserRemindDataAsync(long userId)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var remindContext = scope.ServiceProvider.GetRequiredService<RemindContext>();
+
+            return await remindContext.Reminds
+                .Where(r => r.UserId == userId && !r.IsRemind)
+                .OrderBy(r => r.Time)
+                .ToListAsync();
+        }
+
+        public async Task<bool> DeleteUserRemindDataAsync(long userId, long remindId)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var remindContext = scope.ServiceProvider.GetRequiredService<RemindContext>();
+
+            var remind = await remindContext.Reminds
+                .FirstOrDefaultAsync(r => r.Id == remindId && r.UserId == userId);
+
+            if (remind == null) return false;
+
+            remindContext.Reminds.Remove(remind);
+            await remindContext.SaveChangesAsync();
+            return true;
+        }
+
 
     }
 

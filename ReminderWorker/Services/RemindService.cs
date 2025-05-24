@@ -1,5 +1,4 @@
-﻿using DiaryTelegramBot.Data;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using ReminderWorker.Data;
 using ReminderWorker.Settings;
 using Telegram.Bot;

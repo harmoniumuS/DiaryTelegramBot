@@ -10,21 +10,15 @@ namespace DiaryTelegramBot.Handlers;
 
 public class CallBackQueryHandler
 {
-    private readonly ViewAllRemindersHandler _viewAllRemindersHandler;
-    private readonly RemoveRemindHandler _removeRemindHandler;
-    private readonly RemoveRecordState _removeRecordState;
-    private readonly ViewAllRecordsState _viewAllRecordsState;
+    private readonly RemoveRemindState _removeRemindState;
     private readonly UserStateHandler _userStateHandler;
     private readonly UserContext _userContext;
 
-    public CallBackQueryHandler(BotClientWrapper botClientWrapper, RemoveRecordState removeRecordState
-        , ViewAllRecordsState viewAllRecordsState, RemoveRemindHandler removeRemindHandler, ViewAllRemindersHandler viewAllRemindersHandler,
+    public CallBackQueryHandler(RemoveRemindState removeRemindState,
         UserStateHandler userStateHandler, UserContext userContext)
     {
-        _removeRecordState= removeRecordState;
-        _viewAllRecordsState = viewAllRecordsState;
-        _removeRemindHandler = removeRemindHandler;
-        _viewAllRemindersHandler = viewAllRemindersHandler;
+        
+        _removeRemindState = removeRemindState;
         _userStateHandler = userStateHandler;
         _userContext = userContext;
     }
@@ -65,7 +59,8 @@ public class CallBackQueryHandler
                                     await _userStateHandler.HandleState(user,chatId,cancellationToken);
                                     break;
                                 case "view_reminders":
-                                    _viewAllRemindersHandler.HandleViewReminders(botClient, chatId, userId, cancellationToken);
+                                    user.CurrentStatus = UserStatus.AwaitingGetAllReminds;
+                                    await _userStateHandler.HandleState(user,chatId,cancellationToken);
                                     break;
                     
                                 case { } dataCalendar when dataCalendar.StartsWith("date:"):
@@ -78,16 +73,15 @@ public class CallBackQueryHandler
                                     await _userStateHandler.HandleState(user, chatId, cancellationToken,dataCalendarButtons);
                                     break;
                                 case {} data when data.StartsWith("add_remind_"):
-                                    if (int.TryParse(data["add_remind_".Length..], out int result))
-                                    {
-                                        await _addRemindState.HandleAddRemind(botClient, chatId, userId, result,
-                                            cancellationToken);
-                                    }
-                                    break;
+                                        user.CurrentStatus = UserStatus.AwaitingOffsetRemind;
+                                        await _userStateHandler.HandleState(user, chatId, cancellationToken,data);
+                                        break;
                                 case {} data when data.StartsWith("deleteReminder_"):
                                     if (int.TryParse(data["deleteReminder_".Length..], out int indexRemind))
                                     {
-                                        _removeRemindHandler.HandleRemoveRemind(botClient, chatId, userId, indexRemind, cancellationToken);
+                                        user.CurrentStatus = UserStatus.AwaitingRemoveChoiceRemind;
+                                        user.SelectedIndex = indexRemind;
+                                        await _userStateHandler.HandleState(user,chatId,cancellationToken);
                                     }
                                     else
                                     {
@@ -114,8 +108,8 @@ public class CallBackQueryHandler
                                 case { } data when data.StartsWith("delete_"):
                                     if (int.TryParse(data["delete_".Length..], out int index))
                                     {
-                                        user.SelectedIndexRecord = index;
-                                        _removeRecordState.Handle(_userStateHandler, user,userId,cancellationToken);
+                                        user.SelectedIndex = index;
+                                        await _userStateHandler.HandleState(user,chatId,cancellationToken);
                                     }
                                     else
                                     {
@@ -138,18 +132,6 @@ public class CallBackQueryHandler
                                         }
                                         return;
                                     }
-                                    break;
-                                case "remind_offset_5":
-                                    await _addRemindState.HandleRemindOffset(botClient, chatId, userId,-5,cancellationToken);
-                                    break;
-                                case "remind_offset_30":
-                                    await _addRemindState.HandleRemindOffset(botClient, chatId, userId,-30,cancellationToken);
-                                    break;
-                                case "remind_offset_60":
-                                    await _addRemindState.HandleRemindOffset(botClient, chatId, userId,-60,cancellationToken);
-                                    break;
-                                case "remind_offset_1440":
-                                    await _addRemindState.HandleRemindOffset(botClient, chatId, userId,-1440,cancellationToken);
                                     break;
 
                                 default:

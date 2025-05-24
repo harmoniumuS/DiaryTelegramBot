@@ -30,13 +30,13 @@ public class RemoveRecordState:IState
             return;
         }
     
-        if (user.SelectedIndexRecord < 0 || user.SelectedIndexRecord >= messages.Count)
+        if (user.SelectedIndex < 0 || user.SelectedIndex >= messages.Count)
         {
             await _botClient.SendMessage(chatId, "Некорректный выбор записи.", cancellationToken: cancellationToken);
             return;
         }
 
-        var recordToRemove = messages[user.SelectedIndexRecord];
+        var recordToRemove = messages[user.SelectedIndex];
         await _userContext.RemoveMessageAsync(user.Id, recordToRemove.SentTime, recordToRemove.Text);
     
         await _botClient.SendMessage(chatId, "Запись успешно удалена.", cancellationToken: cancellationToken);
