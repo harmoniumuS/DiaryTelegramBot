@@ -1,10 +1,10 @@
 ﻿using DiaryTelegramBot.Data;
-using DiaryTelegramBot.ReminderWorker.Data;
-using DiaryTelegramBot.Service.Settings;
 using Microsoft.Extensions.Options;
+using ReminderWorker.Data;
+using ReminderWorker.Settings;
 using Telegram.Bot;
 
-namespace DiaryTelegramBot.Service;
+namespace ReminderWorker.Services;
 
 public class RemindsService(RemindContext context
     ,ITelegramBotClient botClient

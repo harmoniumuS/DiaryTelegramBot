@@ -1,4 +1,4 @@
-﻿namespace DiaryTelegramBot.ReminderWorker.Data;
+﻿namespace ReminderWorker.Data;
 
 public class Remind
 {

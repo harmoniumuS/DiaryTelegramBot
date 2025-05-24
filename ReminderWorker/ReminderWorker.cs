@@ -1,11 +1,12 @@
-﻿using DiaryTelegramBot.Service.Settings;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ReminderWorker.Services;
+using ReminderWorker.Settings;
 using Telegram.Bot;
 
-namespace DiaryTelegramBot.Service;
+namespace ReminderWorker;
 public class ReminderWorker:BackgroundService
 {
     public ILogger<ReminderWorker> Logger { get; }

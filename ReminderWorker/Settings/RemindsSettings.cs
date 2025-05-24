@@ -1,4 +1,4 @@
-﻿namespace DiaryTelegramBot.Service.Settings;
+﻿namespace ReminderWorker.Settings;
 
 public class RemindsSettings
 {

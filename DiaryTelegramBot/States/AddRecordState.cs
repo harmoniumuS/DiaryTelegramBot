@@ -1,4 +1,5 @@
 ﻿using DiaryTelegramBot.Data;
+using DiaryTelegramBot.Models;
 using DiaryTelegramBot.States;
 using DiaryTelegramBot.Wrappers;
 using Telegram.Bot;
@@ -17,11 +18,11 @@ public class AddRecordState : IState
         _userStateHandler = userStateHandler;
     }
 
-    public async Task Handle(UserStateHandler stateHandler, long userId, long chatId,
+    public async Task Handle(UserStateHandler stateHandler, User user,
         CancellationToken cancellationToken)
     {
         await _botClientWrapper.SendTextMessageAsync(
-            chatId,
+            user.Id,
             "Введите запись:",
             replyMarkup: new[]
             {
@@ -29,6 +30,6 @@ public class AddRecordState : IState
             },
             cancellationToken);
         ;
-        stateHandler.SetState(userId,UserStatus.AwaitingContent);
+        stateHandler.SetState(user);
     }
 }

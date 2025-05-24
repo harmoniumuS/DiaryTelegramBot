@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Options;
-
-namespace DiaryTelegramBot.Service.Settings;
+﻿namespace ReminderWorker.Settings;
 
 public class MessageSettings
 {

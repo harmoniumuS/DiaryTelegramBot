@@ -1,13 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using DiaryTelegramBot.Data.Remind; 
+﻿using DiaryTelegramBot.Data;
+using DiaryTelegramBot.States;
+using ReminderWorker.Data;
 
-namespace DiaryTelegramBot.Data
+namespace DiaryTelegramBot.Models
 {
     public class User
     {
         public long Id { get; set; }
-        public long UserId { get; set; }
+        public UserStatus CurrentStatus { get; set; }
 
         public IReadOnlyList<Message> Messages => _messages;
         public IReadOnlyList<Remind> Reminders => _reminders;
@@ -17,14 +17,14 @@ namespace DiaryTelegramBot.Data
 
         public void AddMessage(Message message)
         {
-            if (message.UserId != UserId)
+            if (message.UserId != Id)
                 throw new Exception("UserId mismatch");
             _messages.Add(message);
         }
 
         public void AddRemind(Remind remind)
         {
-            if (remind.UserId != UserId)
+            if (remind.UserId != Id)
                 throw new Exception("UserId mismatch");
             _reminders.Add(remind);
         }

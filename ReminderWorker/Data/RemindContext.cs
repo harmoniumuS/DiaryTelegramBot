@@ -1,7 +1,6 @@
-﻿using DiaryTelegramBot.ReminderWorker.Data;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
-namespace DiaryTelegramBot.Data;
+namespace ReminderWorker.Data;
 
 public class RemindContext(DbContextOptions<RemindContext> options):DbContext(options)
 {

@@ -1,12 +1,12 @@
 ﻿using DiaryTelegramBot.Data;
-using DiaryTelegramBot.Service;
-using DiaryTelegramBot.Service.Settings;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
+using ReminderWorker.Data;
+using ReminderWorker.Services;
+using ReminderWorker.Settings;
 
-
-namespace DiaryTelegramBot
+namespace ReminderWorker
 {
     public class StartUp
     {
@@ -24,7 +24,7 @@ namespace DiaryTelegramBot
             services.Configure<RemindsSettings>(Configuration.GetSection("Reminds"));
 
             services.AddScoped<RemindsService>();
-            services.AddHostedService<Service.ReminderWorker>();
+            services.AddHostedService<global::ReminderWorker.ReminderWorker>();
             return services;
         }
     }
