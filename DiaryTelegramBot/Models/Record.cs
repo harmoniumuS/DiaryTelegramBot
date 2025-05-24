@@ -1,6 +1,6 @@
 ﻿namespace DiaryTelegramBot.Data;
 
-public class Message
+public class Record
 {
     public long id { get; set; }
     public long UserId { get; set; }

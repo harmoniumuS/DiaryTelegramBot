@@ -12,7 +12,6 @@ public class RemindContext(DbContextOptions<RemindContext> options):DbContext(op
             && r.Time >= from
             && r.Time <= to).ToListAsync();
     
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Remind>().HasKey(r=>r.Id);

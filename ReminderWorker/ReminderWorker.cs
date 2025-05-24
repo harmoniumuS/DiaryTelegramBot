@@ -11,7 +11,6 @@ public class ReminderWorker:BackgroundService
 {
     public ILogger<ReminderWorker> Logger { get; }
     private readonly IServiceProvider _serviceProvider;
-    private readonly ITelegramBotClient _botClient;
     private readonly IOptions<RemindsSettings> _reminderSettings;
     private readonly ILogger _logger;
     private readonly IOptions<RemindsSettings> _settings;
@@ -20,7 +19,6 @@ public class ReminderWorker:BackgroundService
     {
         Logger = logger;
         _settings = settings;
-        _botClient = botClient;
         _serviceProvider = serviceProvider;
     }
 

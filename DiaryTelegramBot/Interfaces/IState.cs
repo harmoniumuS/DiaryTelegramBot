@@ -5,5 +5,5 @@ namespace DiaryTelegramBot.States;
 
 public interface IState
 {
-    public Task Handle(UserStateHandler service,User user,CancellationToken cancellationToken);
+    public Task Handle(UserStateHandler handler,User user,long chatId,CancellationToken cancellationToken);
 }

@@ -7,18 +7,18 @@ namespace DiaryTelegramBot.Handlers;
 public class ViewAllRemindersHandler
 {
     private readonly BotClientWrapper _botClientWrapper;
-    private readonly UserDataService _userDataService;
+    private readonly UserContext _userContext;
 
-    public ViewAllRemindersHandler(BotClientWrapper botClientWrapper, UserDataService userDataService)
+    public ViewAllRemindersHandler(BotClientWrapper botClientWrapper, UserContext userContext)
     {
         _botClientWrapper = botClientWrapper;
-        _userDataService = userDataService;
+        _userContext = userContext;
     }
-    public async Task HandleViewReminders(ITelegramBotClient botClient, long chatId, string userId, CancellationToken cancellationToken)
+    public async Task HandleViewReminders(ITelegramBotClient botClient, long chatId, long userId, CancellationToken cancellationToken)
     {
         try
         {
-            var reminders = await _userDataService.GetUserRemindDataAync(userId);
+            var reminders = await _userContext.GetUserRemindDataAync(userId);
 
             if (reminders.Any())
             {

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-
+using ReminderWorker.Data;
+using User = DiaryTelegramBot.Models.User;
 
 namespace DiaryTelegramBot.Data
 {
@@ -11,19 +12,15 @@ namespace DiaryTelegramBot.Data
         }
 
         public DbSet<User> Users { get; set; }
-        public DbSet<Remind> UserReminders { get; set; }
+        public DbSet<Record> Messages { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Remind>()
                 .HasKey(r => r.Id); 
-            modelBuilder.Entity<Remind>()
-                .HasOne(r => r.User)
-                .WithMany(u => u.Reminders)
-                .HasForeignKey(r => r.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
         }
+
     }
 
 }

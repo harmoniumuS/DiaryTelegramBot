@@ -1,4 +1,5 @@
 ﻿using DiaryTelegramBot.Data;
+using DiaryTelegramBot.Keyboards;
 using DiaryTelegramBot.Models;
 using DiaryTelegramBot.States;
 using DiaryTelegramBot.Wrappers;
@@ -10,26 +11,38 @@ namespace DiaryTelegramBot.Handlers;
 public class AddRecordState : IState
 {
     private readonly UserStateHandler _userStateHandler;
-    private readonly BotClientWrapper _botClientWrapper;
+    private readonly UserContext _userContext;
+    private ITelegramBotClient _botClient;
 
-    public AddRecordState(BotClientWrapper botClientWrapper, UserStateHandler userStateHandler)
+    public AddRecordState(UserStateHandler userStateHandler, UserContext userContext, ITelegramBotClient botClient)
     {
-        _botClientWrapper = botClientWrapper;
         _userStateHandler = userStateHandler;
+        _userContext = userContext;
+        _botClient = botClient;
     }
 
-    public async Task Handle(UserStateHandler stateHandler, User user,
-        CancellationToken cancellationToken)
+    public async Task Handle(UserStateHandler stateHandler,User user,long chatId,CancellationToken cancellationToken)
     {
-        await _botClientWrapper.SendTextMessageAsync(
-            user.Id,
-            "Введите запись:",
-            replyMarkup: new[]
-            {
-                InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu"),
-            },
-            cancellationToken);
-        ;
-        stateHandler.SetState(user);
-    }
+        if (user.TempRecord.SentTime !=null)
+        {
+            await _userContext.AddMessageAsync(user, user.TempRecord.Text,user.TempRecord.SentTime);
+            
+            
+            await _botClient.SendMessage(
+                chatId,
+                $"Запись сохранена на {user.TempRecord.SentTime:dd.MM.yyyy HH:mm}");
+
+            await BotKeyboardManager.SendMainKeyboardAsync(_botClient, chatId, cancellationToken);
+            user.CurrentStatus = UserStatus.None;
+            user.TempRecord = null;
+        }
+        else
+        {
+            await _botClient.SendMessage(
+                chatId,
+                "Некорректное время. Пожалуйста, используйте формат ЧЧ:ММ:",
+                cancellationToken: cancellationToken);
+        }
+        stateHandler.SetState(user.Id,UserStatus.None);
+    }                                       
 }

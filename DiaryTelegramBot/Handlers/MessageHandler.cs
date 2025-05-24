@@ -1,23 +1,27 @@
-﻿using DiaryTelegramBot.Keyboards;
+﻿using DiaryTelegramBot.Data;
+using DiaryTelegramBot.Keyboards;
 using DiaryTelegramBot.States;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Message = Telegram.Bot.Types.Message;
 
 namespace DiaryTelegramBot.Handlers
 {
     public class MessageHandler
     {
-        private readonly UserStateService _userStateService;
         private readonly CallBackQueryHandler _callBackQueryHandler;
         private readonly UserStateHandler _userStateHandler;
+        private readonly UserContext _userContext;
 
 
-        public MessageHandler(UserStateService userStateService, CallBackQueryHandler callBackQueryHandler,UserStateHandler userStateHandler)
+        public MessageHandler(CallBackQueryHandler callBackQueryHandler
+            ,UserStateHandler userStateHandler
+            ,UserContext userContext)
         {
-            _userStateService = userStateService;
             _callBackQueryHandler = callBackQueryHandler;
-            _userStateHandler = userStateHandler;   
+            _userStateHandler = userStateHandler;
+            _userContext = userContext;
         }
         public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update,
             CancellationToken cancellationToken)
@@ -58,49 +62,26 @@ namespace DiaryTelegramBot.Handlers
         private async Task HandleMessageAsync(ITelegramBotClient botClient, Message message,
             CancellationToken cancellationToken)
         {
-            var userId = message?.From?.Id.ToString();
-            if (string.IsNullOrEmpty(userId))
-            {
-
-                return;
-            }
-
+            var userId = message.From.Id;
+                                        
             if (message != null)
             {
                 var chatId = message.Chat.Id;
                 var text = message.Text;
-
+                var user = await _userContext.GetUserAsync(userId);
                 if (text == "/start")
                 {
                     await BotKeyboardManager.SendMainKeyboardAsync(botClient, chatId, cancellationToken);
-                    _userStateService.SetStateToAwaitingContent(userId);
+                    _userStateHandler.SetState(userId,UserStatus.None);
                     return;
                 }
-            
-                var userState = _userStateService.GetOrCreateState(userId);
-                switch (userState.Stage)
+                
+                if (text != "\\start" && text != null)
                 {
-                    case UserStatus.AwaitingContent:
-
-                        await _userStateHandler.HandleAwaitingContentState(botClient, chatId, userState, text, userId,
-                            cancellationToken);
-                        break;
-                    case UserStatus.AwaitingDate:
-                        await _userStateHandler.HandleAwaitingDateState(chatId, userState, text, userId,
-                            cancellationToken);
-                        break;
-                    case UserStatus.AwaitingTime:
-                        await _userStateHandler.HandleAwaitingTimeState(chatId, userState, text, userId,cancellationToken);
-                        break;
-                    case UserStatus.AwaitingRemoveDate:
-                        await _userStateHandler.HandleAwaitingRemoveDateState(botClient, chatId, userState, text, userId,
-                            cancellationToken);
-                        break;
-                    case UserStatus.AwaitingRemoveChoice:
-                        await _userStateHandler.HandleAwaitingRemoveChoiceState(botClient, chatId, userState, text, userId,
-                            cancellationToken);
-                        break;
+                    user.TempRecord.Text = text;
+                    await BotKeyboardManager.SendAddRecordsKeyboardAsync(botClient,chatId,cancellationToken,DateTime.UtcNow);
                 }
+                await _userStateHandler.HandleState(user,chatId,cancellationToken);
             }
         }
     }

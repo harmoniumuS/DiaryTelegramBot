@@ -5,6 +5,8 @@ VisualStudioVersion = 17.11.35312.102
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiaryTelegramBot", "DiaryTelegramBot\DiaryTelegramBot.csproj", "{84B22E5E-5D64-4829-A795-9064D8F251CE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReminderWorker", "ReminderWorker\ReminderWorker.csproj", "{70E82D82-1314-4355-872E-DFEDE31A6537}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{84B22E5E-5D64-4829-A795-9064D8F251CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{84B22E5E-5D64-4829-A795-9064D8F251CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{84B22E5E-5D64-4829-A795-9064D8F251CE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{70E82D82-1314-4355-872E-DFEDE31A6537}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{70E82D82-1314-4355-872E-DFEDE31A6537}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{70E82D82-1314-4355-872E-DFEDE31A6537}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{70E82D82-1314-4355-872E-DFEDE31A6537}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

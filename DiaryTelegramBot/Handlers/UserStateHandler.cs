@@ -1,161 +1,162 @@
 ﻿using DiaryTelegramBot.Data;
+using DiaryTelegramBot.Handlers;
 using DiaryTelegramBot.Keyboards;
+using DiaryTelegramBot.Models;
 using DiaryTelegramBot.States;
-using DiaryTelegramBot.Wrappers;
 using Telegram.Bot;
+using Telegram.Bot.Types.ReplyMarkups;
 
 public class UserStateHandler
 {
     private Dictionary<long, UserStatus> _states = new();
-    private readonly UserDataService _userDataService;
-    private readonly BotClientWrapper _botClientWrapper;
-    private readonly State _state;
+    private readonly AddRecordState _addRecordState;
+    private readonly ITelegramBotClient _botClient;
+    private readonly UserContext _userContext;
+    private readonly ViewAllRecordsState _viewAllRecordsState;
+    private readonly RemoveRecordState _removeRecordState;
 
-    public UserStateHandler(BotClientWrapper botClientWrapper, UserDataService userDataService, State state)
+    public UserStateHandler(AddRecordState addRecordState
+        ,RemoveRecordState removeRecordState
+        ,ITelegramBotClient botClient
+        ,UserContext userContext, ViewAllRecordsState viewAllRecordsState)
     {
-        _userDataService = userDataService;
-        _botClientWrapper = botClientWrapper;
-        _state = state;
+        _addRecordState = addRecordState;
+        _botClient = botClient;
+        _userContext = userContext;
+        _viewAllRecordsState = viewAllRecordsState;
+        _removeRecordState = removeRecordState;
     }
-    
-    public UserStatus GetState(long userId)
-    {
-        if (!_states.ContainsKey(userId))
-            _states[userId] = UserStatus.None; 
 
-        return _states[userId];
+    public UserStatus GetState(User user)
+    {
+        if (!_states.ContainsKey(user.Id))
+            _states[user.Id] = UserStatus.None; 
+
+        return _states[user.Id];
     }
-    public void SetState(long userId, UserStatus state)
+    public void SetState(long id,UserStatus state)
     {
-        _states[userId] = state;
+        _states[id] = state;
     }
-}
 
-/*
-public async Task HandleAwaitingContentState(
-    ITelegramBotClient botClient,
-    long chatId,
-    string? text,
-    long userId,
-    CancellationToken cancellationToken)
-{
-    var userState = _state.GetState(userId);
-    userState.TempContent = text;
-    userState.Stage = UserStatus.AwaitingDate;
-
-    await BotKeyboardManager.SendAddRecordsKeyboardAsync(botClient, chatId, cancellationToken, DateTime.Now);
-}
-
-public async Task HandleAwaitingTimeState(
-    ITelegramBotClient botClient,
-    long chatId,
-    string? text,
-    long userId,
-    CancellationToken cancellationToken)
-{
-    var userState = _state.GetState(userId);
-
-    if (TimeSpan.TryParse(text, out var parsedTime))
+    public async Task HandleState(User user,long chatId,CancellationToken cancellationToken,string dataHandler=null)
     {
-        userState.TempTime = parsedTime;
-        userState.Stage = UserStatus.None;
-
-        if (userState.TempDate != DateTime.MinValue)
+        switch (user.CurrentStatus)
         {
-            var finalDateTime = userState.TempDate.Date + userState.TempTime.Value;
-
-            await _botClientWrapper.SendTextMessageAsync(
-                chatId,
-                $"Запись '{userState.TempContent}' сделана на дату: {finalDateTime:dd.MM.yyyy HH:mm}.",
-                cancellationToken: cancellationToken);
-
-            await _userDataService.AddOrUpdateUserDataAsync(userId.ToString(), finalDateTime, userState.TempContent!);
-
-            // Очистка временных данных
-            userState.TempDate = DateTime.MinValue;
-            userState.TempTime = null;
-            userState.TempContent = null;
-        }
-        else
-        {
-            await _botClientWrapper.SendTextMessageAsync(
-                chatId,
-                "Дата не выбрана. Пожалуйста, выберите дату.",
-                cancellationToken: cancellationToken);
+            case UserStatus.AwaitingContent:
+                await AwaitingContentStateHandle(chatId, _botClient);
+                break;
+            case UserStatus.AwaitingDate:
+                await AwaitingDateStateHandle(dataHandler,user,chatId,cancellationToken);
+                break;
+            case UserStatus.AwaitingTime:
+                await _addRecordState.Handle(this,user,chatId,cancellationToken);
+                break;
+            case UserStatus.AwaitingGetAllRecords:
+                await _viewAllRecordsState.Handle(this,user,chatId,cancellationToken)
+                    break;
+            case UserStatus.AwaitingRemoveRecord:
+                await AwaitingRemoveRecordHandle(user,chatId,cancellationToken);
+                break;
+            case UserStatus.AwaitingRemoveChoice:
+                await _removeRecordState.Handle(this,user,chatId,cancellationToken);
+                break;
+            case UserStatus.AwaitingRemind:
+                break;
+            
         }
     }
-    else
+
+    private async Task AwaitingRemoveRecordHandle(User user, long chatId, CancellationToken cancellationToken)
     {
-        await _botClientWrapper.SendTextMessageAsync(
+        var messages = await _userContext.GetMessagesAsync(user.Id);
+
+        if (!messages.Any())
+        {
+            await _botClient.SendMessage(chatId, "У вас нет записей для удаления.", cancellationToken: cancellationToken);
+            SetState(user.Id, UserStatus.None);
+            return;
+        }
+        var formattedRecords = messages
+            .Select((record, index) => $"{index + 1}. {record.SentTime:yyyy-MM-dd HH:mm}: {record.Text}")
+            .ToList();
+        
+        SetState(user.Id, UserStatus.AwaitingRemoveChoice);
+        
+        await BotKeyboardManager.SendRemoveKeyboardAsync(_botClient, chatId, formattedRecords, cancellationToken);
+    }
+
+    private async Task AwaitingContentStateHandle(long chatId, ITelegramBotClient botClient)
+    {
+        await _botClient.SendMessage(
             chatId,
-            "Некорректный формат времени. Введите время в формате HH:mm, например 14:30.",
-            cancellationToken: cancellationToken);
-    }
-}
-
-public async Task HandleAwaitingRemoveDateState(
-    ITelegramBotClient botClient,
-    long chatId,
-    long userId,
-    string? text,
-    CancellationToken cancellationToken)
-{
-    var userState = _state.GetOrCreate(userId);
-
-    if (DateTime.TryParse(text, out var removedDate))
-    {
-        var records = await _userDataService.GetUserDataAsync(userId.ToString(), removedDate);
-
-        if (records.Any())
-        {
-            userState.TempDate = removedDate;
-            userState.TempRecords = records;
-
-            if (records.Count == 1)
+            "Введите запись:",
+            replyMarkup: new[]
             {
-                await _userDataService.RemoveUserDataAsync(userId.ToString(), removedDate);
-                await _botClientWrapper.SendTextMessageAsync(chatId, "Единственная запись на эту дату была удалена", cancellationToken);
-                _state.ResetState(userId);
+                InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu"),
+            });
+    }
+
+    private async Task AwaitingDateStateHandle(string dateHandler, User user, long chatId , CancellationToken cancellationToken)
+    {   
+        var datePart = dateHandler.Substring("date:".Length);
+        if (dateHandler.StartsWith("date:"))
+        {
+            if (DateTime.TryParse(datePart, out var parsedDate))
+            {
+                if (user.CurrentStatus == UserStatus.AwaitingDate)
+                {
+                    user.TempRecord.SentTime= parsedDate;
+                    user.CurrentStatus = UserStatus.AwaitingTime;
+                                    
+                    await _botClient.SendMessage(
+                        chatId,
+                        $"Вы выбрали дату: {parsedDate:dd.MM.yyyy}. Теперь введите время (в формате ЧЧ:ММ):",
+                        cancellationToken: cancellationToken);
+                    user.CurrentStatus = UserStatus.AwaitingTime;
+                }
+                else
+                {
+                    await _botClient.SendMessage(
+                        chatId,
+                        "Неверное состояние. Попробуйте ещё раз.",
+                        cancellationToken: cancellationToken);
+                }
             }
             else
             {
-                userState.Stage = UserStatus.AwaitingRemoveChoice;
-                await BotKeyboardManager.SendRemoveKeyboardAsync(botClient, chatId, records, cancellationToken);
+                await _botClient.SendMessage(
+                    chatId,
+                    "Некорректная дата, попробуйте ещё раз.",
+                    cancellationToken: cancellationToken);
             }
         }
-        else
+        else if (dateHandler.StartsWith("calendar:prev:") || dateHandler.StartsWith("calendar:next:"))
         {
-            await _botClientWrapper.SendTextMessageAsync(chatId, "На эту дату не найдено записей.", cancellationToken);
-            _state.ResetState(userId);
+            var action = dateHandler.Split(':')[0] == "calendar" ? dateHandler.Split(':')[1] : string.Empty;
+            var partOfDate = dateHandler.Substring($"calendar:{action}:".Length);
+            if (DateTime.TryParse(partOfDate, out var changeMonthDate))
+            {
+                var newDate = action == "prev" 
+                    ? changeMonthDate.AddMonths(-1)
+                    : changeMonthDate.AddMonths(1); 
+                var calendarMarkup = BotKeyboardManager.CreateCalendarMarkUp(newDate);
+                await _botClient.SendMessage(
+                    chatId,
+                    $"Вы перешли к {newDate:MMMM yyyy}.",
+                    replyMarkup: calendarMarkup,
+                    cancellationToken: cancellationToken
+                );
+            }
+            else
+            {
+                await _botClient.SendMessage(
+                    chatId,
+                    "Некорректная дата для перехода, попробуйте ещё раз.",
+                    cancellationToken: cancellationToken);
+            }
         }
     }
-    else
-    {
-        await _botClientWrapper.SendTextMessageAsync(chatId, "Некорректная дата.", cancellationToken);
-        _state.ResetState(userId);
-    }
+
 }
 
-public async Task HandleAwaitingRemoveChoiceState(
-    ITelegramBotClient botClient,
-    long chatId,
-    long userId,
-    string? text,
-    CancellationToken cancellationToken)
-{
-    var userState = _state.GetOrCreate(userId);
-
-    if (int.TryParse(text, out int index) && index > 0 && userState.TempRecords != null && index <= userState.TempRecords.Count)
-    {
-        var selectedRecord = userState.TempRecords[index - 1];
-        await _userDataService.RemoveUserDataAsync(userId.ToString(), userState.TempDate, selectedRecord);
-        await _botClientWrapper.SendTextMessageAsync(chatId, "Запись успешно удалена!", cancellationToken);
-        _state.ResetState(userId);
-    }
-    else
-    {
-        await _botClientWrapper.SendTextMessageAsync(chatId, "Неверный выбор, выберите корректный номер записи для удаления.", cancellationToken);
-    }
-}
-}
-*/

@@ -17,15 +17,14 @@ namespace ReminderWorker
             Configuration = configuration;
         }
 
-        public IServiceCollection ConfigureServices(IServiceCollection services)
+        public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<RemindContext>(options=>
                 options.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
             services.Configure<RemindsSettings>(Configuration.GetSection("Reminds"));
 
             services.AddScoped<RemindsService>();
-            services.AddHostedService<global::ReminderWorker.ReminderWorker>();
-            return services;
+            services.AddHostedService<ReminderWorker>();
         }
     }
 }

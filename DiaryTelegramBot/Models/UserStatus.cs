@@ -4,9 +4,10 @@
         None,
         AwaitingContent,
         AwaitingDate,
-        AwaitingRemoveDate,
-        AwaitingRemoveChoice,
+        AwaitingTime,
+        AwaitingChooseRemoveRecord,
+        AwaitingGetAllRecords,
+        AwaitingRemoveRecord,
         AwaitingRemind,
-        AwaitingTime, 
-        AwaitingRemoveRemind
+        AwaitingRemoveChoice,
     }

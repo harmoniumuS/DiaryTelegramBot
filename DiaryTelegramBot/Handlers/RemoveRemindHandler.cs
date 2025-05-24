@@ -2,6 +2,7 @@
 using DiaryTelegramBot.Keyboards;
 using DiaryTelegramBot.States;
 using DiaryTelegramBot.Wrappers;
+using ReminderWorker.Data;
 using Telegram.Bot;
 
 namespace DiaryTelegramBot.Handlers;
@@ -9,18 +10,16 @@ namespace DiaryTelegramBot.Handlers;
 public class RemoveRemindHandler
 {
     private readonly BotClientWrapper _botClientWrapper;
-    private readonly UserDataService _userDataService;
-    private readonly UserStateService _userStateService;
-    public RemoveRemindHandler(BotClientWrapper botClientWrapper, UserDataService userDataService, 
-        UserStateService userStateService)
+    private readonly UserContext _userContext;
+    private readonly RemindContext _remindContext;
+    public RemoveRemindHandler(BotClientWrapper botClientWrapper, UserContext userContext)
     {
         _botClientWrapper = botClientWrapper;
-        _userDataService = userDataService;
-        _userStateService = userStateService;
+        _userContext = userContext;
     }
     public async Task HandleRemoveRemind(ITelegramBotClient botClient, long chatId, string userId, CancellationToken cancellationToken)
         {
-            var userDataRemind = await _userDataService.GetUserRemindDataAync(userId);
+            var userDataRemind = await _remindContext.ReadRemindsInTimespan(userId);
             
             if (userDataRemind == null || !userDataRemind.Any())
             {
@@ -49,7 +48,7 @@ public class RemoveRemindHandler
             await _botClientWrapper.SendTextMessageAsync(chatId, "Ошибка с индексом напоминания.", cancellationToken);
             return;
         }
-        var userReminds = await _userDataService.GetUserRemindDataAync(userId);
+        var userReminds = await _userContext.GetUserRemindDataAync(userId);
         if (userReminds == null || !userReminds.Any())
         {
             await _botClientWrapper.SendTextMessageAsync(chatId, "Напоминания не найдены.", cancellationToken);
@@ -57,7 +56,7 @@ public class RemoveRemindHandler
         }
 
         var remindToRemove = userReminds[indexRemind];
-        var deleteSuccess = await _userDataService.DeleteUserRemindDataAsync(userId, remindToRemove.Id);
+        var deleteSuccess = await _userContext.DeleteUserRemindDataAsync(userId, remindToRemove.Id);
         if (!deleteSuccess)
         {
             await botClient.SendMessage(chatId,
@@ -71,7 +70,7 @@ public class RemoveRemindHandler
                 cancellationToken:cancellationToken);
             
         }
-        var updatedUserRemind = await _userDataService.GetUserRemindDataAync(userId);
+        var updatedUserRemind = await _userContext.GetUserRemindDataAync(userId);
         if (!updatedUserRemind.Any())
         {
             _userStateService.ClearState(userId);

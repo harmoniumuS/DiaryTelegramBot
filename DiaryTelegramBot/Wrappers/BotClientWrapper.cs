@@ -13,7 +13,7 @@ namespace DiaryTelegramBot.Wrappers
             _botClient = botClient;
         }
 
-        public async Task SendTextMessageAsync(long chatId, string text, InlineKeyboardButton[] replyMarkup,
+        public async Task SendTextMessageAsync(long chatId, string text, InlineKeyboardButton[]? replyMarkup,
             CancellationToken cancellationToken)
         {
             await _botClient.SendMessage(chatId, text, cancellationToken: cancellationToken);
