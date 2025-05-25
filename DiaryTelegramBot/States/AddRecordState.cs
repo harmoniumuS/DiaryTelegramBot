@@ -14,14 +14,13 @@ public class AddRecordState : IState
     private readonly UserContext _userContext;
     private ITelegramBotClient _botClient;
 
-    public AddRecordState(UserStateHandler userStateHandler, UserContext userContext, ITelegramBotClient botClient)
+    public AddRecordState(UserContext userContext, ITelegramBotClient botClient)
     {
-        _userStateHandler = userStateHandler;
         _userContext = userContext;
         _botClient = botClient;
     }
 
-    public async Task Handle(User user,long chatId,CancellationToken cancellationToken)
+    public async Task Handle(User user,long chatId,CancellationToken cancellationToken,string dataHandler = null)
     {
         if (user.TempRecord.SentTime !=null)
         {
@@ -43,5 +42,6 @@ public class AddRecordState : IState
                 "Некорректное время. Пожалуйста, используйте формат ЧЧ:ММ:",
                 cancellationToken: cancellationToken);
         }
-    }                                       
+    }
+    
 }

@@ -19,7 +19,7 @@ public class AddRemindState : IState
         _userContext = userContext;
     }
 
-    public async Task Handle(User user, long chatId, CancellationToken cancellationToken)
+    public async Task Handle(User user, long chatId, CancellationToken cancellationToken,string dataHandler = null)
     {
         var userData = await _userContext.GetMessagesAsync(user.Id);
         var allRecords = userData

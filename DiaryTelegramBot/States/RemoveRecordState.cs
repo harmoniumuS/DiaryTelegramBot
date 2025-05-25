@@ -13,13 +13,12 @@ public class RemoveRecordState:IState
     private readonly UserContext _userContext;
     private readonly UserStateHandler _userStateHandler;
 
-    public RemoveRecordState(UserContext userContext, UserStateHandler userStateHandler, ITelegramBotClient botClient)
+    public RemoveRecordState(UserContext userContext, ITelegramBotClient botClient)
     {
         _userContext = userContext;
-        _userStateHandler = userStateHandler;
         _botClient = botClient;
     }
-    public async Task Handle(User user, long chatId, CancellationToken cancellationToken)
+    public async Task Handle(User user, long chatId, CancellationToken cancellationToken,string dataHandler = null)
     {
         var messages = await _userContext.GetMessagesAsync(user.Id);
     
@@ -29,13 +28,13 @@ public class RemoveRecordState:IState
             return;
         }
     
-        if (user.SelectedIndex < 0 || user.SelectedIndex >= messages.Count)
+        if (user.TempRecord.SelectedIndex < 0 || user.TempRecord.SelectedIndex >= messages.Count)
         {
             await _botClient.SendMessage(chatId, "Некорректный выбор записи.", cancellationToken: cancellationToken);
             return;
         }
 
-        var recordToRemove = messages[user.SelectedIndex];
+        var recordToRemove = messages[user.TempRecord.SelectedIndex];
         await _userContext.RemoveMessageAsync(user.Id, recordToRemove.SentTime, recordToRemove.Text);
     
         await _botClient.SendMessage(chatId, "Запись успешно удалена.", cancellationToken: cancellationToken);

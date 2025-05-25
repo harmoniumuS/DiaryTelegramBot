@@ -1,4 +1,5 @@
-﻿using DiaryTelegramBot.Data;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using DiaryTelegramBot.Data;
 using DiaryTelegramBot.States;
 using ReminderWorker.Data;
 
@@ -8,8 +9,10 @@ namespace DiaryTelegramBot.Models
     {
         public long Id { get; set; }
         public UserStatus CurrentStatus { get; set; } = UserStatus.None;
+        [NotMapped]
         public Record TempRecord { get; set; }
-        public int SelectedIndex { get; set; }
+        [NotMapped]
+        public Remind TempRemind { get; set; }
         public IReadOnlyList<Record> Messages => _messages;
         public IReadOnlyList<Remind> Reminders => _reminders;
         private List<Record> _messages = new List<Record>();

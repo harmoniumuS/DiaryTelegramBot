@@ -17,67 +17,91 @@ namespace DiaryTelegramBot.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
 
-            modelBuilder.Entity("DiaryTelegramBot.Data.User", b =>
+            modelBuilder.Entity("DiaryTelegramBot.Data.Record", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<long>("id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("UserId")
+                    b.Property<DateTime>("SentTime")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Text")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("UserJsonData")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
+                    b.Property<long>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Messages");
+                });
+
+            modelBuilder.Entity("DiaryTelegramBot.Models.User", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CurrentStatus")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("DiaryTelegramBot.Data.UserReminder", b =>
+            modelBuilder.Entity("ReminderWorker.Data.Remind", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsRemind")
                         .HasColumnType("INTEGER");
 
-                    b.Property<long>("MessageId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ReminderMessage")
+                    b.Property<string>("Message")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("ReminderTime")
+                    b.Property<DateTime>("Time")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("UserId")
+                    b.Property<long>("UserId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserReminders");
+                    b.ToTable("Remind");
                 });
 
-            modelBuilder.Entity("DiaryTelegramBot.Data.UserReminder", b =>
+            modelBuilder.Entity("DiaryTelegramBot.Data.Record", b =>
                 {
-                    b.HasOne("DiaryTelegramBot.Data.User", "User")
+                    b.HasOne("DiaryTelegramBot.Models.User", null)
+                        .WithMany("Messages")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ReminderWorker.Data.Remind", b =>
+                {
+                    b.HasOne("DiaryTelegramBot.Models.User", null)
                         .WithMany("Reminders")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DiaryTelegramBot.Data.User", b =>
+            modelBuilder.Entity("DiaryTelegramBot.Models.User", b =>
                 {
+                    b.Navigation("Messages");
+
                     b.Navigation("Reminders");
                 });
 #pragma warning restore 612, 618

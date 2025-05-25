@@ -72,7 +72,6 @@ namespace DiaryTelegramBot.Handlers
                 if (text == "/start")
                 {
                     await BotKeyboardManager.SendMainKeyboardAsync(botClient, chatId, cancellationToken);
-                    _userStateHandler.SetState(userId,UserStatus.None);
                     return;
                 }
                 

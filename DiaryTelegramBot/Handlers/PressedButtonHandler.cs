@@ -80,7 +80,7 @@ public class PressedButtonHandler
                                     if (int.TryParse(data["deleteReminder_".Length..], out int indexRemind))
                                     {
                                         user.CurrentStatus = UserStatus.AwaitingRemoveChoiceRemind;
-                                        user.SelectedIndex = indexRemind;
+                                        user.TempRecord.SelectedIndex = indexRemind;
                                         await _userStateHandler.HandleState(user,chatId,cancellationToken);
                                     }
                                     else
@@ -108,7 +108,7 @@ public class PressedButtonHandler
                                 case { } data when data.StartsWith("delete_"):
                                     if (int.TryParse(data["delete_".Length..], out int index))
                                     {
-                                        user.SelectedIndex = index;
+                                        user.TempRecord.SelectedIndex = index;
                                         await _userStateHandler.HandleState(user,chatId,cancellationToken);
                                     }
                                     else

@@ -16,7 +16,7 @@ public class ViewAllRecordsState:IState
         _userContext = userContext;
         _botClient = botClient;
     }
-    public async Task Handle(User user, long chatId, CancellationToken cancellationToken)
+    public async Task Handle(User user, long chatId, CancellationToken cancellationToken,string dataHandler = null)
     {
         try
         {
