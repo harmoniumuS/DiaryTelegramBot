@@ -22,15 +22,13 @@ namespace DiaryTelegramBot
         {
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
-            services.AddDbContext<RemindContext>(options =>
-                options.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
             services.AddScoped<AddRemindState>();
             services.AddScoped<RemoveRemindState>();
             services.AddScoped<UserStateHandler>();
             services.AddScoped<UserContext>();
             services.AddScoped<MessageHandler>();
             services.AddScoped<TelegramBotService>();
-            services.AddTransient<CallBackQueryHandler>();
+            services.AddTransient<PressedButtonHandler>();
             services.AddScoped<ViewAllRemindersState>();
             services.AddScoped<AddRecordState>();
             services.AddScoped<RemoveRecordState>();

@@ -21,7 +21,7 @@ public class AddRecordState : IState
         _botClient = botClient;
     }
 
-    public async Task Handle(UserStateHandler stateHandler,User user,long chatId,CancellationToken cancellationToken)
+    public async Task Handle(User user,long chatId,CancellationToken cancellationToken)
     {
         if (user.TempRecord.SentTime !=null)
         {
@@ -43,6 +43,5 @@ public class AddRecordState : IState
                 "Некорректное время. Пожалуйста, используйте формат ЧЧ:ММ:",
                 cancellationToken: cancellationToken);
         }
-        stateHandler.SetState(user.Id,UserStatus.None);
     }                                       
 }

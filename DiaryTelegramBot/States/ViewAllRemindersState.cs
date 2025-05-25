@@ -17,7 +17,7 @@ public class ViewAllRemindersState:IState
         _botClient = botClient;
     }
 
-    public async Task Handle(UserStateHandler handler, User user, long chatId, CancellationToken cancellationToken)
+    public async Task Handle(User user, long chatId, CancellationToken cancellationToken)
     {
         try
         {

@@ -6,36 +6,17 @@ using DiaryTelegramBot.States;
 using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
 
-public class UserStateHandler
+public class UserStateHandler(
+    AddRecordState addRecordState,
+    RemoveRecordState removeRecordState,
+    ITelegramBotClient client,
+    UserContext userContext,
+    ViewAllRecordsState viewAllRecordsState,
+    AddRemindState addRemindState,
+    ViewAllRemindersState viewAllRemindersState,
+    RemoveRemindState removeRemindState)
 {
     private Dictionary<long, UserStatus> _states = new();
-    private readonly AddRecordState _addRecordState;
-    private readonly ViewAllRemindersState _viewAllRemindersState;
-    private readonly AddRemindState _addRemindState;
-    private readonly ITelegramBotClient _botClient;
-    private readonly UserContext _userContext;
-    private readonly ViewAllRecordsState _viewAllRecordsState;
-    private readonly RemoveRecordState _removeRecordState;
-    private readonly RemoveRemindState _removeRemindState;
-
-    public UserStateHandler(AddRecordState addRecordState
-        ,RemoveRecordState removeRecordState
-        ,ITelegramBotClient botClient
-        ,UserContext userContext
-        , ViewAllRecordsState viewAllRecordsState
-        , AddRemindState addRemindState
-        , ViewAllRemindersState viewAllRemindersState
-        , RemoveRemindState removeRemindState)
-    {
-        _addRecordState = addRecordState;
-        _botClient = botClient;
-        _userContext = userContext;
-        _viewAllRecordsState = viewAllRecordsState;
-        _addRemindState = addRemindState;
-        _viewAllRemindersState = viewAllRemindersState;
-        _removeRemindState = removeRemindState;
-        _removeRecordState = removeRecordState;
-    }
 
     public UserStatus GetState(User user)
     {
@@ -48,44 +29,44 @@ public class UserStateHandler
     {
         _states[id] = state;
     }
-
+   
     public async Task HandleState(User user,long chatId,CancellationToken cancellationToken,string dataHandler=null)
     {
         switch (user.CurrentStatus)
         {
             case UserStatus.AwaitingContent:
-                await AwaitingContentStateHandle(chatId, _botClient);
+                await AwaitingContentStateHandle(chatId, client);
                 break;
             case UserStatus.AwaitingDate:
                 await AwaitingDateStateHandle(dataHandler,user,chatId,cancellationToken);
                 break;
             case UserStatus.AwaitingTime:
-                await _addRecordState.Handle(this,user,chatId,cancellationToken);
+                await addRecordState.Handle(user,chatId,cancellationToken);
                 break;
             case UserStatus.AwaitingGetAllRecords:
-                await _viewAllRecordsState.Handle(this, user, chatId, cancellationToken);
+                await viewAllRecordsState.Handle(user, chatId, cancellationToken);
                     break;
             case UserStatus.AwaitingRemoveRecord:
                 await AwaitingRemoveRecordHandle(user,chatId,cancellationToken);
                 break;
             case UserStatus.AwaitingRemoveChoice:
-                await _removeRecordState.Handle(this,user,chatId,cancellationToken);
+                await removeRecordState.Handle(user,chatId,cancellationToken);
                 break;
             case UserStatus.AwaitingRemind:
-                _addRemindState.Handle(this,user,chatId,cancellationToken);
+                await addRemindState.Handle(user,chatId,cancellationToken);
                 break;
             case UserStatus.AwaitingOffsetRemind:
                 var offsetTime = int.Parse(dataHandler);
-                _addRemindState.HandleRemindOffset(user,chatId,offsetTime,cancellationToken);
+                await addRemindState.HandleRemindOffset(user,chatId,offsetTime,cancellationToken);
                 break;
             case UserStatus.AwaitingRemoveRemind:
-                AwaitingRemoveRemindHandle(user,chatId,cancellationToken);
+                await AwaitingRemoveRemindHandle(user,chatId,cancellationToken);
                 break;
             case UserStatus.AwaitingRemoveChoiceRemind:
-                _removeRemindState.Handle(this,user,chatId,cancellationToken);
+                await removeRemindState.Handle(user,chatId,cancellationToken);
                 break;
             case UserStatus.AwaitingGetAllReminds:
-                _viewAllRemindersState.Handle(this,user,chatId,cancellationToken);
+                await viewAllRemindersState.Handle(user,chatId,cancellationToken);
                 break;
             
         }
@@ -93,11 +74,11 @@ public class UserStateHandler
 
     private async Task AwaitingRemoveRecordHandle(User user, long chatId, CancellationToken cancellationToken)
     {
-        var messages = await _userContext.GetMessagesAsync(user.Id);
+        var messages = await userContext.GetMessagesAsync(user.Id);
 
         if (!messages.Any())
         {
-            await _botClient.SendMessage(chatId, "У вас нет записей для удаления.", cancellationToken: cancellationToken);
+            await client.SendMessage(chatId, "У вас нет записей для удаления.", cancellationToken: cancellationToken);
             SetState(user.Id, UserStatus.None);
             return;
         }
@@ -107,15 +88,15 @@ public class UserStateHandler
         
         SetState(user.Id, UserStatus.AwaitingRemoveChoice);
         
-        await BotKeyboardManager.SendRemoveKeyboardAsync(_botClient, chatId, formattedRecords, cancellationToken);
+        await BotKeyboardManager.SendRemoveKeyboardAsync(client, chatId, formattedRecords, cancellationToken);
     }
     private async Task AwaitingRemoveRemindHandle(User user, long chatId, CancellationToken cancellationToken)
     {
-        var messages = await _userContext.GetMessagesAsync(user.Id);
+        var messages = await userContext.GetMessagesAsync(user.Id);
 
         if (!messages.Any())
         {
-            await _botClient.SendMessage(chatId, "У вас нет записей для удаления.", cancellationToken: cancellationToken);
+            await client.SendMessage(chatId, "У вас нет записей для удаления.", cancellationToken: cancellationToken);
             SetState(user.Id, UserStatus.None);
             return;
         }
@@ -125,12 +106,12 @@ public class UserStateHandler
         
         SetState(user.Id, UserStatus.AwaitingRemoveChoice);
         
-        await BotKeyboardManager.SendRemoveKeyboardAsync(_botClient, chatId, formattedRecords, cancellationToken);
+        await BotKeyboardManager.SendRemoveKeyboardAsync(client, chatId, formattedRecords, cancellationToken);
     }
 
     private async Task AwaitingContentStateHandle(long chatId, ITelegramBotClient botClient)
     {
-        await _botClient.SendMessage(
+        await client.SendMessage(
             chatId,
             "Введите запись:",
             replyMarkup: new[]
@@ -151,7 +132,7 @@ public class UserStateHandler
                     user.TempRecord.SentTime= parsedDate;
                     user.CurrentStatus = UserStatus.AwaitingTime;
                                     
-                    await _botClient.SendMessage(
+                    await client.SendMessage(
                         chatId,
                         $"Вы выбрали дату: {parsedDate:dd.MM.yyyy}. Теперь введите время (в формате ЧЧ:ММ):",
                         cancellationToken: cancellationToken);
@@ -159,7 +140,7 @@ public class UserStateHandler
                 }
                 else
                 {
-                    await _botClient.SendMessage(
+                    await client.SendMessage(
                         chatId,
                         "Неверное состояние. Попробуйте ещё раз.",
                         cancellationToken: cancellationToken);
@@ -167,7 +148,7 @@ public class UserStateHandler
             }
             else
             {
-                await _botClient.SendMessage(
+                await client.SendMessage(
                     chatId,
                     "Некорректная дата, попробуйте ещё раз.",
                     cancellationToken: cancellationToken);
@@ -183,7 +164,7 @@ public class UserStateHandler
                     ? changeMonthDate.AddMonths(-1)
                     : changeMonthDate.AddMonths(1); 
                 var calendarMarkup = BotKeyboardManager.CreateCalendarMarkUp(newDate);
-                await _botClient.SendMessage(
+                await client.SendMessage(
                     chatId,
                     $"Вы перешли к {newDate:MMMM yyyy}.",
                     replyMarkup: calendarMarkup,
@@ -192,7 +173,7 @@ public class UserStateHandler
             }
             else
             {
-                await _botClient.SendMessage(
+                await client.SendMessage(
                     chatId,
                     "Некорректная дата для перехода, попробуйте ещё раз.",
                     cancellationToken: cancellationToken);

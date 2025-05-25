@@ -8,13 +8,13 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace DiaryTelegramBot.Handlers;
 
-public class CallBackQueryHandler
+public class PressedButtonHandler
 {
     private readonly RemoveRemindState _removeRemindState;
     private readonly UserStateHandler _userStateHandler;
     private readonly UserContext _userContext;
 
-    public CallBackQueryHandler(RemoveRemindState removeRemindState,
+    public PressedButtonHandler(RemoveRemindState removeRemindState,
         UserStateHandler userStateHandler, UserContext userContext)
     {
         
@@ -22,7 +22,7 @@ public class CallBackQueryHandler
         _userStateHandler = userStateHandler;
         _userContext = userContext;
     }
-     public async Task HandleCallbackQueryAsync(ITelegramBotClient botClient, CallbackQuery? callbackQuery, CancellationToken cancellationToken)
+     public async Task HandlePressedButtonAsync(ITelegramBotClient botClient, CallbackQuery? callbackQuery, CancellationToken cancellationToken)
             {
                 if (callbackQuery != null)
                 {

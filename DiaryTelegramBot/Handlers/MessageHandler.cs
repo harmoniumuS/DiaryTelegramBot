@@ -10,16 +10,16 @@ namespace DiaryTelegramBot.Handlers
 {
     public class MessageHandler
     {
-        private readonly CallBackQueryHandler _callBackQueryHandler;
+        private readonly PressedButtonHandler _pressedButtonHandler;
         private readonly UserStateHandler _userStateHandler;
         private readonly UserContext _userContext;
 
 
-        public MessageHandler(CallBackQueryHandler callBackQueryHandler
+        public MessageHandler(PressedButtonHandler pressedButtonHandler
             ,UserStateHandler userStateHandler
             ,UserContext userContext)
         {
-            _callBackQueryHandler = callBackQueryHandler;
+            _pressedButtonHandler = pressedButtonHandler;
             _userStateHandler = userStateHandler;
             _userContext = userContext;
         }
@@ -45,7 +45,7 @@ namespace DiaryTelegramBot.Handlers
             {
                 try
                 {
-                    await _callBackQueryHandler.HandleCallbackQueryAsync(botClient, update.CallbackQuery,
+                    await _pressedButtonHandler.HandlePressedButtonAsync(botClient, update.CallbackQuery,
                         cancellationToken);
                 }
                 catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.Message.Contains("query is too old"))

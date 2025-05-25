@@ -19,14 +19,13 @@ public class RemoveRecordState:IState
         _userStateHandler = userStateHandler;
         _botClient = botClient;
     }
-    public async Task Handle(UserStateHandler stateHandler, User user, long chatId, CancellationToken cancellationToken)
+    public async Task Handle(User user, long chatId, CancellationToken cancellationToken)
     {
         var messages = await _userContext.GetMessagesAsync(user.Id);
     
         if (messages.Count == 0)
         {
             await _botClient.SendMessage(chatId, "У вас нет записей для удаления.", cancellationToken: cancellationToken);
-            stateHandler.SetState(user.Id, UserStatus.None);
             return;
         }
     
@@ -46,13 +45,11 @@ public class RemoveRecordState:IState
         if (remaining.Any())
         {
             var updated = remaining.Select(r => $"{r.SentTime:yyyy-MM-dd HH:mm}: {r.Text}").ToList();
-            stateHandler.SetState(user.Id, UserStatus.AwaitingChooseRemoveRecord);
             await BotKeyboardManager.SendRemoveKeyboardAsync(_botClient, chatId, updated, cancellationToken, sendIntroMessage: false);
         }
         else
         {
             await _botClient.SendMessage(chatId, "Больше нет записей для удаления.", cancellationToken: cancellationToken);
-            stateHandler.SetState(user.Id, UserStatus.None);
         }
 
         user.CurrentStatus = UserStatus.None;
