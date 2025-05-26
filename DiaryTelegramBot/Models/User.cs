@@ -9,14 +9,14 @@ namespace DiaryTelegramBot.Models
     {
         public long Id { get; set; }
         public UserStatus CurrentStatus { get; set; } = UserStatus.None;
+        [NotMapped] public Record? TempRecord { get; set; } = new ();
         [NotMapped]
-        public Record TempRecord { get; set; }
-        [NotMapped]
-        public Remind TempRemind { get; set; }
+        public Remind? TempRemind { get; set; } = new ();
         public IReadOnlyList<Record> Messages => _messages;
         public IReadOnlyList<Remind> Reminders => _reminders;
-        private List<Record> _messages = new List<Record>();
-        private List<Remind> _reminders = new List<Remind>();
+        private List<Record> _messages = new ();
+        private List<Remind> _reminders = new ();
+        
 
         public void AddRecord(Record record)
         {

@@ -52,7 +52,7 @@ public class RemoveRemindState : IState
         }
 
         var formatted = updatedReminders
-            .Select((r, i) => $"{i + 1}. {r.Time:yyyy-MM-dd HH:mm} | {r.Message}")
+            .Select((r, i) => $"{i + 1}. {r.Time:yyyy-MM-dd HH:mm} | {r.Record}")
             .ToList();
 
         await BotKeyboardManager.SendRemoveKeyboardAsync(

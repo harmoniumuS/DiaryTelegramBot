@@ -10,6 +10,7 @@ public class UserStateHandler
     private readonly Dictionary<UserStatus, IState> _states;
     private readonly AddRemindState _addRemindState;
     private readonly ITelegramBotClient _client;
+    private readonly UserContext _userContext;
 
     public UserStateHandler(
         AddRecordState addRecordState,
@@ -26,6 +27,7 @@ public class UserStateHandler
         RemoveRemindState removeRemindState)
     {
         _client = client;
+        _userContext = userContext;
         _addRemindState = addRemindState;
 
         _states = new Dictionary<UserStatus, IState>
@@ -50,28 +52,35 @@ public class UserStateHandler
             if (int.TryParse(dataHandler, out var offsetTime))
             {
                 await _addRemindState.HandleRemindOffset(user, chatId, offsetTime, cancellationToken);
+                await _userContext.UpdateUserAsync(user);  
             }
             else
             {
                 await _client.SendMessage(chatId, "Неверное значение смещения.", cancellationToken: cancellationToken);
             }
-
             return;
         }
-
         if (_states.TryGetValue(user.CurrentStatus, out var state))
         {
-            await state.Handle(user, chatId, cancellationToken);
+            if (dataHandler != null) 
+                await state.Handle(user, chatId, cancellationToken, dataHandler);
+            else
+            {
+                await state.Handle(user, chatId, cancellationToken);
+            }
+            await _userContext.UpdateUserAsync(user);
         }
         else
         {
             await _client.SendMessage(chatId, "Неизвестное состояние. Возвращаюсь в главное меню.", cancellationToken: cancellationToken);
-            user.CurrentStatus = UserStatus.None;
+            SetUserStatusAsync(user, UserStatus.None);
         }
     }
 
-    public void SetUserStatus(User user, UserStatus status)
+    public async Task SetUserStatusAsync(User user, UserStatus status)
     {
         user.CurrentStatus = status;
+        await _userContext.UpdateUserAsync(user);
     }
+    
 }

@@ -36,36 +36,33 @@ public class PressedButtonHandler
                             switch (callbackQuery.Data)
                             {
                                 case "add_record":
-                                    user.CurrentStatus = UserStatus.AwaitingContent;
+                                    await _userStateHandler.SetUserStatusAsync(user, UserStatus.AwaitingContent);
                                     await _userStateHandler.HandleState(user,chatId,cancellationToken);
                                     break;
                                 case "remove_record":
-                                    user.CurrentStatus = UserStatus.AwaitingRemoveRecord;
+                                    await _userStateHandler.SetUserStatusAsync(user, UserStatus.AwaitingRemoveRecord);
                                     await _userStateHandler.HandleState(user,chatId,cancellationToken);
                                     break;
                                 case "view_records":
-                                    user.CurrentStatus = UserStatus.AwaitingGetAllRecords;
+                                    await _userStateHandler.SetUserStatusAsync(user, UserStatus.AwaitingGetAllRecords);
+                                    await _userStateHandler.HandleState(user,chatId,cancellationToken);
+                                    break;
+                                case "add_reminder":
+                                    await _userStateHandler.HandleState(user,chatId,cancellationToken);
+                                    break;
+                                case "remove_reminder":
+                                    await _userStateHandler.HandleState(user,chatId,cancellationToken);
+                                    break;
+                                case "view_reminders":
                                     await _userStateHandler.HandleState(user,chatId,cancellationToken);
                                     break;
                                 case "return_main_menu":
                                     await BotKeyboardManager.SendMainKeyboardAsync(botClient, chatId, cancellationToken);
                                     break;
-                                case "add_reminder":
-                                    user.CurrentStatus = UserStatus.AwaitingRemind;
-                                    await _userStateHandler.HandleState(user,chatId,cancellationToken);
-                                    break;
-                                case "remove_reminder":
-                                    user.CurrentStatus = UserStatus.AwaitingRemoveRemind;
-                                    await _userStateHandler.HandleState(user,chatId,cancellationToken);
-                                    break;
-                                case "view_reminders":
-                                    user.CurrentStatus = UserStatus.AwaitingGetAllReminds;
-                                    await _userStateHandler.HandleState(user,chatId,cancellationToken);
-                                    break;
                     
                                 case { } dataCalendar when dataCalendar.StartsWith("date:"):
                                 {
-                                    user.CurrentStatus = UserStatus.AwaitingDate;
+                                    await _userStateHandler.SetUserStatusAsync(user, UserStatus.AwaitingDate);
                                     await _userStateHandler.HandleState(user, chatId, cancellationToken,dataCalendar);
                                     break;
                                 }
@@ -73,13 +70,11 @@ public class PressedButtonHandler
                                     await _userStateHandler.HandleState(user, chatId, cancellationToken,dataCalendarButtons);
                                     break;
                                 case {} data when data.StartsWith("add_remind_"):
-                                        user.CurrentStatus = UserStatus.AwaitingOffsetRemind;
                                         await _userStateHandler.HandleState(user, chatId, cancellationToken,data);
                                         break;
                                 case {} data when data.StartsWith("deleteReminder_"):
                                     if (int.TryParse(data["deleteReminder_".Length..], out int indexRemind))
                                     {
-                                        user.CurrentStatus = UserStatus.AwaitingRemoveChoiceRemind;
                                         user.TempRecord.SelectedIndex = indexRemind;
                                         await _userStateHandler.HandleState(user,chatId,cancellationToken);
                                     }

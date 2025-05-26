@@ -37,7 +37,6 @@ public class ViewAllRecordsState:IState
             {
                 await _botClient.SendMessage(chatId,"Записи не найдены!",cancellationToken: cancellationToken);
             }
-
             user.CurrentStatus = UserStatus.None;
         }
         catch (Exception ex)

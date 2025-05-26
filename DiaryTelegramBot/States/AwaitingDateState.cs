@@ -23,14 +23,14 @@ public class AwaitingDateState:IState
             {
                 if (user.CurrentStatus == UserStatus.AwaitingDate)
                 {
-                    user.TempRecord.SentTime= parsedDate;
+                    if (user.TempRecord != null) 
+                        user.TempRecord.SentTime = parsedDate;
                     user.CurrentStatus = UserStatus.AwaitingTime;
                                     
                     await _botClient.SendMessage(
                         chatId,
                         $"Вы выбрали дату: {parsedDate:dd.MM.yyyy}. Теперь введите время (в формате ЧЧ:ММ):",
                         cancellationToken: cancellationToken);
-                    user.CurrentStatus = UserStatus.AwaitingTime;
                 }
                 else
                 {

@@ -39,7 +39,7 @@ public class RemindsService(RemindContext context
         try
         {
             var telegramUserId = remind.UserId;
-            var message = string.Format(messages.Value.RemindHeader, remind.Message);
+            var message = string.Format(messages.Value.RemindHeader, remind.Record);
             await botClient.SendMessage(telegramUserId, message);
         }
         catch (Exception e)

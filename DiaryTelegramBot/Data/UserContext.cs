@@ -33,21 +33,6 @@ namespace DiaryTelegramBot.Data
             await context.SaveChangesAsync();
             return user;
         }
-        public async Task<List<Record>> GetMessagesAsync(long userId)
-        {
-            using var scope = _scopeFactory.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-            var user = await context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
-            {
-                throw new KeyNotFoundException("User not found");
-            }
-
-            return await context.Messages
-                .Where(m => m.UserId == user.Id)
-                .ToListAsync();
-        }
          public async Task AddMessageAsync(User user, string textMessage, DateTime? createdAt = null)
         {
             using var scope = _scopeFactory.CreateScope();
@@ -58,11 +43,11 @@ namespace DiaryTelegramBot.Data
                 Text = textMessage,
                 SentTime = createdAt ?? DateTime.UtcNow
             };
-
-            context.Messages.Add(message);
+            user.AddRecord(message);
+            context.Users.Update(user);
             await context.SaveChangesAsync();
         }
-        public async Task<List<Record>> GetAllMessagesAsync(long userId)
+        public async Task<List<Record>> GetMessagesAsync(long userId)
         {
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -70,7 +55,7 @@ namespace DiaryTelegramBot.Data
             var user = await context.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null) return new List<Record>();
 
-            return await context.Messages
+            return await context.Records
                 .Where(m => m.UserId == user.Id)
                 .OrderBy(m => m.SentTime)
                 .ToListAsync();
@@ -84,14 +69,26 @@ namespace DiaryTelegramBot.Data
             var user = await context.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null) return;
 
-            var message = await context.Messages
+            var message = await context.Records
                 .FirstOrDefaultAsync(m => m.UserId == user.Id && m.SentTime.Date == date.Date && m.Text == content);
 
             if (message != null)
             {
-                context.Messages.Remove(message);
+                context.Records.Remove(message);
                 await context.SaveChangesAsync();
             }
+        }
+        
+        private async Task SaveUserAsync(User user)
+        {
+            await UpdateUserAsync(user);
+        }
+        public async Task UpdateUserAsync(User user)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            context.Users.Update(user);
+            await context.SaveChangesAsync();
         }
         public async Task SaveRemindDataAsync(Remind remind)
         {

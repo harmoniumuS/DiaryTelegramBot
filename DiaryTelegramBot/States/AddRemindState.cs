@@ -81,7 +81,7 @@ public class AddRemindState : IState
         {
             UserId = user.Id,
             Time = remindTime,
-            Message = record.Text,
+            Record = record.Text,
             IsRemind = false
         };
 

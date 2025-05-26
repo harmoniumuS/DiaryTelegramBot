@@ -22,11 +22,10 @@ public class AddRecordState : IState
 
     public async Task Handle(User user,long chatId,CancellationToken cancellationToken,string dataHandler = null)
     {
-        if (user.TempRecord.SentTime !=null)
+        if (user.TempRecord.SentTime !=null && user.TempRecord.Text !=null)
         {
+            user.CurrentStatus = UserStatus.None;
             await _userContext.AddMessageAsync(user, user.TempRecord.Text,user.TempRecord.SentTime);
-            
-            
             await _botClient.SendMessage(
                 chatId,
                 $"Запись сохранена на {user.TempRecord.SentTime:dd.MM.yyyy HH:mm}");
@@ -42,6 +41,7 @@ public class AddRecordState : IState
                 "Некорректное время. Пожалуйста, используйте формат ЧЧ:ММ:",
                 cancellationToken: cancellationToken);
         }
+        
     }
     
 }

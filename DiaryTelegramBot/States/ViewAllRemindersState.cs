@@ -24,7 +24,7 @@ public class ViewAllRemindersState:IState
             if (user.Reminders.Any())
             {
                 var message = string.Join("\n", user.Reminders.Select(r =>
-                    $"{r.Time:yyyy-MM-dd HH:mm} — {r.Message}"
+                    $"{r.Time:yyyy-MM-dd HH:mm} — {r.Record}"
                 ));
 
                 await _botClient.SendMessage(chatId, message);

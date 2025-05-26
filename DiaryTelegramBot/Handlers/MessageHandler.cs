@@ -62,25 +62,32 @@ namespace DiaryTelegramBot.Handlers
         private async Task HandleMessageAsync(ITelegramBotClient botClient, Message message,
             CancellationToken cancellationToken)
         {
+            if (message == null) return;
+
             var userId = message.From.Id;
-                                        
-            if (message != null)
+            var chatId = message.Chat.Id;
+            var text = message.Text;
+            var user = await _userContext.GetUserAsync(userId);
+
+            if (text == "/start")
             {
-                var chatId = message.Chat.Id;
-                var text = message.Text;
-                var user = await _userContext.GetUserAsync(userId);
-                if (text == "/start")
+                await BotKeyboardManager.SendMainKeyboardAsync(botClient, chatId, cancellationToken);
+                return;
+            }
+            
+
+            if (!string.IsNullOrEmpty(text) && text != "\\start")
+            { 
+                if (DateTime.TryParse(text, out DateTime parsedDate))
                 {
-                    await BotKeyboardManager.SendMainKeyboardAsync(botClient, chatId, cancellationToken);
-                    return;
+                    user.TempRecord.SentTime = parsedDate;
+                    await _userStateHandler.HandleState(user, chatId, cancellationToken);
                 }
-                
-                if (text != "\\start" && text != null)
+                else
                 {
                     user.TempRecord.Text = text;
-                    await BotKeyboardManager.SendAddRecordsKeyboardAsync(botClient,chatId,cancellationToken,DateTime.UtcNow);
+                    await BotKeyboardManager.SendAddRecordsKeyboardAsync(botClient, chatId, cancellationToken, DateTime.UtcNow); 
                 }
-                await _userStateHandler.HandleState(user,chatId,cancellationToken);
             }
         }
     }
