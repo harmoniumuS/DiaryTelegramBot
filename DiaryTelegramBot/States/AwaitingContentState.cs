@@ -15,7 +15,6 @@ public class AwaitingContentState:IState
 
     public async Task Handle(User user, long chatId, CancellationToken cancellationToken,string dataHandler = null)
     {
-       
         await _botClient.SendMessage(
             chatId,
             "Введите запись:",

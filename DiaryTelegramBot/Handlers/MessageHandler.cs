@@ -1,6 +1,6 @@
 ﻿using DiaryTelegramBot.Data;
 using DiaryTelegramBot.Keyboards;
-using DiaryTelegramBot.States;
+using Microsoft.Extensions.Caching.Memory;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -13,15 +13,17 @@ namespace DiaryTelegramBot.Handlers
         private readonly PressedButtonHandler _pressedButtonHandler;
         private readonly UserStateHandler _userStateHandler;
         private readonly UserContext _userContext;
-
-
+        private readonly IMemoryCache _memoryCache;
+        
         public MessageHandler(PressedButtonHandler pressedButtonHandler
             ,UserStateHandler userStateHandler
-            ,UserContext userContext)
+            ,UserContext userContext
+            ,IMemoryCache memoryCache)
         {
             _pressedButtonHandler = pressedButtonHandler;
             _userStateHandler = userStateHandler;
             _userContext = userContext;
+            _memoryCache = memoryCache;
         }
         public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update,
             CancellationToken cancellationToken)
@@ -62,31 +64,37 @@ namespace DiaryTelegramBot.Handlers
         private async Task HandleMessageAsync(ITelegramBotClient botClient, Message message,
             CancellationToken cancellationToken)
         {
-            if (message == null) return;
-
-            var userId = message.From.Id;
-            var chatId = message.Chat.Id;
-            var text = message.Text;
-            var user = await _userContext.GetUserAsync(userId);
-
-            if (text == "/start")
+            if (message.From != null)
             {
-                await BotKeyboardManager.SendMainKeyboardAsync(botClient, chatId, cancellationToken);
-                return;
-            }
+               
+                var userId = message.From.Id;
+                var chatId = message.Chat.Id;
+                var text = message.Text;
+                var user = await _memoryCache.GetOrCreateAsync($"user_{userId}", async entry =>
+                {
+                    entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+                    return await _userContext.GetUserAsync(userId);
+                });
+
+                if (text == "/start")
+                {
+                    await BotKeyboardManager.SendMainKeyboardAsync(botClient, chatId, cancellationToken);
+                    return;
+                }
             
 
-            if (!string.IsNullOrEmpty(text) && text != "\\start")
-            { 
-                if (DateTime.TryParse(text, out DateTime parsedDate))
-                {
-                    user.TempRecord.SentTime = parsedDate;
-                    await _userStateHandler.HandleState(user, chatId, cancellationToken);
-                }
-                else
-                {
-                    user.TempRecord.Text = text;
-                    await BotKeyboardManager.SendAddRecordsKeyboardAsync(botClient, chatId, cancellationToken, DateTime.UtcNow); 
+                if (!string.IsNullOrEmpty(text) && text != "\\start")
+                { 
+                    if (DateTime.TryParse(text, out DateTime parsedDate))
+                    {
+                        user.TempRecord.SentTime = parsedDate;
+                        await _userStateHandler.HandleState(user, chatId, cancellationToken);
+                    }
+                    else
+                    {
+                        user.TempRecord.Text = text;
+                        await BotKeyboardManager.SendAddRecordsKeyboardAsync(botClient, chatId, cancellationToken, DateTime.UtcNow); 
+                    }
                 }
             }
         }

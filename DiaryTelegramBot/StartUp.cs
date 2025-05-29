@@ -5,6 +5,7 @@ using DiaryTelegramBot.Data;
 using DiaryTelegramBot.Handlers;
 using DiaryTelegramBot.Wrappers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using ReminderWorker.Data;
 using ReminderWorker.Services;
 using ReminderWorker.Settings;
@@ -46,7 +47,7 @@ namespace DiaryTelegramBot
             services.AddScoped<AwaitingDateState>();
             services.AddScoped<AwaitingRemoveRecordState>();
             services.AddScoped<AwaitingRemoveRemindState>();
-
+            services.AddMemoryCache(); 
             services.Configure<TelegramOptions>(Configuration.GetSection("Telegram"));
 
             services.AddSingleton<ITelegramBotClient>(sp =>
@@ -56,8 +57,7 @@ namespace DiaryTelegramBot
             });
 
             services.AddSingleton<BotClientWrapper>();
-
-            // Фоновые сервисы
+            
             services.AddHostedService<TelegramBotService>();
             services.AddHostedService<ReminderWorker.ReminderWorker>();
         }
