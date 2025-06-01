@@ -144,7 +144,7 @@ namespace DiaryTelegramBot.Keyboards
             }
             
         }
-        public static async Task SendAddRecordsKeyboardAsync(ITelegramBotClient botClient, long chatId,
+        public static async Task SendDataKeyboardAsync(ITelegramBotClient botClient, long chatId,
             CancellationToken cancellationToken,DateTime date)
         {  
             var calendarButtons = _calendarBuilder.GenerateCalendarButtons(
@@ -160,23 +160,64 @@ namespace DiaryTelegramBot.Keyboards
                 replyMarkup: keyboard,
                 cancellationToken: cancellationToken);
         }
-
-        public static InlineKeyboardMarkup CreateCalendarMarkUp(DateTime date)
+        public static async Task SendTimeMarkUp(ITelegramBotClient botClient, long chatId, CancellationToken cancellationToken)
         {
-            var calendarButtons = _calendarBuilder.GenerateCalendarButtons(
-                date.Year,
-                date.Month,
-                CalendarViewType.Weekly,
-                "ru");
-            var buttons = calendarButtons.InlineKeyboard.ToList();
+            var time = Enumerable.Range(0, 24)
+                .Select(h => $"{h:D2}:00")
+                .ToList();
 
-            buttons.Add(new[]
-                { InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu") });
+            var buttons = time
+                .Select(t =>
+                {
+                    var hour = t.Split(':')[0];
+                    var callback = $"time_hour_{hour}";
+                    return InlineKeyboardButton.WithCallbackData(t, callback);
+                })
+                .Chunk(4)
+                .Select(row => row.ToArray())
+                .ToList();
 
-            var keyboard = new InlineKeyboardMarkup(buttons);
-            return keyboard;
+            buttons.Add(new[] { InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu") });
+
+            var timeKeyboard = new InlineKeyboardMarkup(buttons);
+            await botClient.SendMessage(chatId, "Выберите час:", replyMarkup: timeKeyboard, cancellationToken: cancellationToken);
         }
-        
+
+
+        public static InlineKeyboardMarkup SendMinutesMarkUp(int selectedHour)
+        {
+            var minuteButtons = Enumerable.Range(0, 60)
+                .Where(min => min % 5 == 0)
+                .Select(min =>
+                {
+                    var label = $"{selectedHour:D2}:{min:D2}";
+                    var callback = $"time_minute_{selectedHour:D2}:{min:D2}"; // <-- новый формат
+                    return InlineKeyboardButton.WithCallbackData(label, callback);
+                })
+                .Chunk(4)
+                .Select(row => row.ToArray())
+                .ToList();
+
+            minuteButtons.Add(new[]
+            {
+                InlineKeyboardButton.WithCallbackData("<< Назад", "return_hour_selection")
+            });
+
+            return new InlineKeyboardMarkup(minuteButtons);
+        }
+        public static InlineKeyboardMarkup GetDeleteConfirmationKeyboard(int index)
+        {
+            return new InlineKeyboardMarkup(new[]
+            {
+                new []
+                {
+                    InlineKeyboardButton.WithCallbackData("✅ Подтвердить", $"confirm_delete_{index}"),
+                    InlineKeyboardButton.WithCallbackData("❌ Отмена", "cancel_delete")
+                }
+            });
+        }
+
+
     }
     
     

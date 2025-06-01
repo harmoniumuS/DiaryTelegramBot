@@ -5,13 +5,14 @@
         AwaitingContent,
         AwaitingDate,
         AwaitingTime,
-        AwaitingChooseRemoveRecord,
         AwaitingGetAllRecords,
         AwaitingRemoveRecord,
         AwaitingRemind,
         AwaitingRemoveRemind,
-        AwaitingRemoveChoice,
+        AwaitingRemoveSelectedRecord,
         AwaitingOffsetRemind,
         AwaitingGetAllReminds,
-        AwaitingRemoveChoiceRemind
+        AwaitingRemoveChoiceRemind,
+        AwaitingAddRecord,
+        AwaitingDeleteConfirmation
     }

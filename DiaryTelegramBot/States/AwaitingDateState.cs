@@ -1,11 +1,10 @@
 ﻿using DiaryTelegramBot.Keyboards;
 using DiaryTelegramBot.Models;
-using DiaryTelegramBot.States;
 using Telegram.Bot;
 
-namespace DiaryTelegramBot.Handlers;
+namespace DiaryTelegramBot.States;
 
-public class AwaitingDateState:IState
+public class AwaitingDateState : IState
 {
     private readonly ITelegramBotClient _botClient;
 
@@ -14,23 +13,25 @@ public class AwaitingDateState:IState
         _botClient = botClient;
     }
 
-    public async Task Handle(User user, long chatId, CancellationToken cancellationToken,string dataHandler = null)
+    public async Task Handle(User user, long chatId, CancellationToken cancellationToken, string dataHandler = null)
     {
-        var datePart = dataHandler.Substring("date:".Length);
         if (dataHandler.StartsWith("date:"))
         {
+            var datePart = dataHandler.Substring("date:".Length);
             if (DateTime.TryParse(datePart, out var parsedDate))
             {
                 if (user.CurrentStatus == UserStatus.AwaitingDate)
                 {
-                    if (user.TempRecord != null) 
+                    if (user.TempRecord != null)
                         user.TempRecord.SentTime = parsedDate;
-                    user.CurrentStatus = UserStatus.AwaitingTime;
-                                    
+
+                    user.CurrentStatus = UserStatus.AwaitingTime; 
+
                     await _botClient.SendMessage(
                         chatId,
-                        $"Вы выбрали дату: {parsedDate:dd.MM.yyyy}. Теперь введите время (в формате ЧЧ:ММ):",
+                        $"Вы выбрали дату: {parsedDate:dd.MM.yyyy}.",
                         cancellationToken: cancellationToken);
+                    await BotKeyboardManager.SendTimeMarkUp(_botClient,chatId,cancellationToken);
                 }
                 else
                 {
@@ -50,20 +51,17 @@ public class AwaitingDateState:IState
         }
         else if (dataHandler.StartsWith("calendar:prev:") || dataHandler.StartsWith("calendar:next:"))
         {
-            var action = dataHandler.Split(':')[0] == "calendar" ? dataHandler.Split(':')[1] : string.Empty;
+            var parts = dataHandler.Split(':');
+            var action = parts[1];
             var partOfDate = dataHandler.Substring($"calendar:{action}:".Length);
+
             if (DateTime.TryParse(partOfDate, out var changeMonthDate))
             {
-                var newDate = action == "prev" 
+                var newDate = action == "prev"
                     ? changeMonthDate.AddMonths(-1)
-                    : changeMonthDate.AddMonths(1); 
-                var calendarMarkup = BotKeyboardManager.CreateCalendarMarkUp(newDate);
-                await _botClient.SendMessage(
-                    chatId,
-                    $"Вы перешли к {newDate:MMMM yyyy}.",
-                    replyMarkup: calendarMarkup,
-                    cancellationToken: cancellationToken
-                );
+                    : changeMonthDate.AddMonths(1);
+
+               await BotKeyboardManager.SendDataKeyboardAsync(_botClient,chatId,cancellationToken,newDate);
             }
             else
             {
@@ -72,6 +70,13 @@ public class AwaitingDateState:IState
                     "Некорректная дата для перехода, попробуйте ещё раз.",
                     cancellationToken: cancellationToken);
             }
+        }
+        else
+        {
+            await _botClient.SendMessage(
+                chatId,
+                "Пожалуйста, выберите дату с помощью календаря.",
+                cancellationToken: cancellationToken);
         }
     }
 }

@@ -1,5 +1,7 @@
 ﻿using DiaryTelegramBot.Data;
 using DiaryTelegramBot.Keyboards;
+using DiaryTelegramBot.States;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.Caching.Memory;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -81,21 +83,8 @@ namespace DiaryTelegramBot.Handlers
                     await BotKeyboardManager.SendMainKeyboardAsync(botClient, chatId, cancellationToken);
                     return;
                 }
-            
-
-                if (!string.IsNullOrEmpty(text) && text != "\\start")
-                { 
-                    if (DateTime.TryParse(text, out DateTime parsedDate))
-                    {
-                        user.TempRecord.SentTime = parsedDate;
-                        await _userStateHandler.HandleState(user, chatId, cancellationToken);
-                    }
-                    else
-                    {
-                        user.TempRecord.Text = text;
-                        await BotKeyboardManager.SendAddRecordsKeyboardAsync(botClient, chatId, cancellationToken, DateTime.UtcNow); 
-                    }
-                }
+                
+                await _userStateHandler.HandleState(user, chatId, cancellationToken, text);
             }
         }
     }

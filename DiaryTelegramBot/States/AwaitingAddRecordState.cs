@@ -8,13 +8,13 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace DiaryTelegramBot.Handlers;
 
-public class AddRecordState : IState
+public class AwaitingAddRecordState : IState
 {
     private readonly UserStateHandler _userStateHandler;
     private readonly UserContext _userContext;
     private ITelegramBotClient _botClient;
 
-    public AddRecordState(UserContext userContext, ITelegramBotClient botClient)
+    public AwaitingAddRecordState(UserContext userContext, ITelegramBotClient botClient)
     {
         _userContext = userContext;
         _botClient = botClient;
@@ -24,13 +24,10 @@ public class AddRecordState : IState
     {
         if (user.TempRecord.SentTime !=null && user.TempRecord.Text !=null)
         {
-            user.CurrentStatus = UserStatus.None;
             await _userContext.AddMessageAsync(user, user.TempRecord.Text,user.TempRecord.SentTime);
             await _botClient.SendMessage(
                 chatId,
                 $"Запись сохранена на {user.TempRecord.SentTime:dd.MM.yyyy HH:mm}");
-
-            await BotKeyboardManager.SendMainKeyboardAsync(_botClient, chatId, cancellationToken);
             user.CurrentStatus = UserStatus.None;
             user.TempRecord = null;
         }
