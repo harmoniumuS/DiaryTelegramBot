@@ -191,7 +191,7 @@ namespace DiaryTelegramBot.Keyboards
                 .Select(min =>
                 {
                     var label = $"{selectedHour:D2}:{min:D2}";
-                    var callback = $"time_minute_{selectedHour:D2}:{min:D2}"; // <-- новый формат
+                    var callback = $"time_minute_{selectedHour:D2}:{min:D2}"; 
                     return InlineKeyboardButton.WithCallbackData(label, callback);
                 })
                 .Chunk(4)

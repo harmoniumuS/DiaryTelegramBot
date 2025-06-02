@@ -77,14 +77,16 @@ namespace DiaryTelegramBot.Handlers
                     entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
                     return await _userContext.GetUserAsync(userId);
                 });
+                
+                var stateContext = new StateContext(user, chatId, cancellationToken, messageText: text);
+               
 
                 if (text == "/start")
                 {
                     await BotKeyboardManager.SendMainKeyboardAsync(botClient, chatId, cancellationToken);
                     return;
                 }
-                
-                await _userStateHandler.HandleState(user, chatId, cancellationToken, text);
+                await _userStateHandler.HandleState(stateContext);
             }
         }
     }

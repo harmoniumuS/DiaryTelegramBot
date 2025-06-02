@@ -1,16 +1,12 @@
-﻿using DiaryTelegramBot.Data;
-using DiaryTelegramBot.Keyboards;
+﻿using DiaryTelegramBot.Attributes;
+using DiaryTelegramBot.Data;
 using DiaryTelegramBot.Models;
 using DiaryTelegramBot.States;
-using DiaryTelegramBot.Wrappers;
 using Telegram.Bot;
-using Telegram.Bot.Types.ReplyMarkups;
 
 namespace DiaryTelegramBot.Handlers;
-
 public class AwaitingAddRecordState : IState
 {
-    private readonly UserStateHandler _userStateHandler;
     private readonly UserContext _userContext;
     private ITelegramBotClient _botClient;
 
@@ -20,25 +16,24 @@ public class AwaitingAddRecordState : IState
         _botClient = botClient;
     }
 
-    public async Task Handle(User user,long chatId,CancellationToken cancellationToken,string dataHandler = null)
+    public async Task Handle(StateContext stateContext,string data = null)
     {
-        if (user.TempRecord.SentTime !=null && user.TempRecord.Text !=null)
+        if (stateContext.User.TempRecord != null)
         {
-            await _userContext.AddMessageAsync(user, user.TempRecord.Text,user.TempRecord.SentTime);
+            if (string.IsNullOrWhiteSpace(stateContext.User.TempRecord.Text))
+            {
+                await _botClient.SendMessage(stateContext.ChatId, "Текст записи не может быть пустым. Пожалуйста, введите текст.");
+                return;
+            }
+
+            await _userContext.AddMessageAsync(stateContext.User, stateContext.User.TempRecord.Text,
+                stateContext.User.TempRecord.SentTime);
             await _botClient.SendMessage(
-                chatId,
-                $"Запись сохранена на {user.TempRecord.SentTime:dd.MM.yyyy HH:mm}");
-            user.CurrentStatus = UserStatus.None;
-            user.TempRecord = null;
+                stateContext.ChatId,
+                $"Запись сохранена на {stateContext.User.TempRecord.SentTime:dd.MM.yyyy HH:mm}");
+            stateContext.User.CurrentStatus = UserStatus.None;
         }
-        else
-        {
-            await _botClient.SendMessage(
-                chatId,
-                "Некорректное время. Пожалуйста, используйте формат ЧЧ:ММ:",
-                cancellationToken: cancellationToken);
-        }
-        
+        stateContext.User.TempRecord = null;
     }
     
 }

@@ -17,13 +17,13 @@ public class AwaitingRemoveRemindState:IState
         _botClient = botClient;
     }
 
-    public async Task Handle(User user, long chatId, CancellationToken cancellationToken,string dataHandler = null)
+    public async Task Handle(StateContext stateContext,string data = null)
     {
-        var messages = await _userContext.GetMessagesAsync(user.Id);
+        var messages = await _userContext.GetMessagesAsync(stateContext.User.Id);
 
         if (!messages.Any())
         {
-            await _botClient.SendMessage(chatId, "У вас нет записей для удаления.", cancellationToken: cancellationToken);
+            await _botClient.SendMessage(stateContext.ChatId, "У вас нет записей для удаления.", cancellationToken: stateContext.CancellationToken);
             return;
         }
         var formattedRecords = messages
@@ -31,6 +31,6 @@ public class AwaitingRemoveRemindState:IState
             .ToList();
         
         
-        await BotKeyboardManager.SendRemoveKeyboardAsync(_botClient, chatId, formattedRecords, cancellationToken);
+        await BotKeyboardManager.SendRemoveKeyboardAsync(_botClient, stateContext.ChatId, formattedRecords, stateContext.CancellationToken);
     }
 }

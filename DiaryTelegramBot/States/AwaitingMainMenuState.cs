@@ -1,5 +1,5 @@
-﻿using DiaryTelegramBot.Keyboards;
-using DiaryTelegramBot.Models;
+﻿using DiaryTelegramBot.Data;
+using DiaryTelegramBot.Keyboards;
 using Telegram.Bot;
 
 namespace DiaryTelegramBot.States;
@@ -13,8 +13,8 @@ public class AwaitingMainMenuState : IState
         _botClient = botClient;
     }
 
-    public async Task Handle(User user, long chatId, CancellationToken cancellationToken, string dataHandler = null)
+    public async Task Handle(StateContext stateContext,string data = null)
     {
-        await BotKeyboardManager.SendMainKeyboardAsync(_botClient, chatId, cancellationToken);
+        await BotKeyboardManager.SendMainKeyboardAsync(_botClient, stateContext.ChatId, stateContext.CancellationToken);
     }
 }

@@ -34,16 +34,16 @@ namespace DiaryTelegramBot
             services.Configure<RemindsSettings>(Configuration.GetSection("Reminds"));
             
             
-            services.AddScoped<AddRemindState>();
-            services.AddScoped<RemoveRemindState>();
+            services.AddScoped<AwaitingAddRemindState>();
+            services.AddScoped<AwaitingSelectedRemoveRemind>();
             services.AddScoped<UserStateHandler>();
             services.AddScoped<UserContext>();
             services.AddScoped<MessageHandler>();
             services.AddTransient<PressedButtonHandler>();
-            services.AddScoped<ViewAllRemindersState>();
+            services.AddScoped<AwaitingViewAllRemindersState>();
             services.AddScoped<AwaitingAddRecordState>();
             services.AddScoped<AwaitingRemoveRecordState>();
-            services.AddScoped<ViewAllRecordsState>();
+            services.AddScoped<AwaitingViewAllRecordsState>();
             services.AddScoped<AwaitingMainMenuState>();
             services.AddScoped<AwaitingContentState>();
             services.AddScoped<AwaitingDateState>();

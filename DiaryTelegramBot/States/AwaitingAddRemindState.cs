@@ -8,33 +8,33 @@ using Telegram.Bot;
 
 namespace DiaryTelegramBot.Handlers;
 
-public class AddRemindState : IState
+public class AwaitingAddRemindState : IState
 {
     private readonly ITelegramBotClient _botClient;
     private readonly UserContext _userContext;
 
-    public AddRemindState(ITelegramBotClient botClient, UserContext userContext)
+    public AwaitingAddRemindState(ITelegramBotClient botClient, UserContext userContext)
     {
         _botClient = botClient;
         _userContext = userContext;
     }
 
-    public async Task Handle(User user, long chatId, CancellationToken cancellationToken,string dataHandler = null)
+    public async Task Handle(StateContext stateContext,string data = null)
     {
-        var userData = await _userContext.GetMessagesAsync(user.Id);
+        var userData = await _userContext.GetMessagesAsync(stateContext.User.Id);
         var allRecords = userData
             .Select(m => $"{m.SentTime:yyyy-MM-dd HH:mm} {m.Text}")
             .ToList();
 
         if (allRecords.Count == 0)
         {
-            await _botClient.SendMessage(chatId, "Нет доступных записей для установки напоминания.", cancellationToken: cancellationToken);
+            await _botClient.SendMessage(stateContext.ChatId, "Нет доступных записей для установки напоминания.", cancellationToken:stateContext.CancellationToken);
             return;
         }
 
-        user.CurrentStatus = UserStatus.AwaitingRemind;
+        stateContext.User.CurrentStatus = UserStatus.AwaitingRemind;
 
-        await BotKeyboardManager.SendAddRemindersKeyboard(_botClient, chatId, allRecords, cancellationToken);
+        await BotKeyboardManager.SendAddRemindersKeyboard(_botClient, stateContext.ChatId, allRecords, cancellationToken:stateContext.CancellationToken);
     }
 
     public async Task HandleAddRemind(User user, long chatId, int index, CancellationToken cancellationToken)

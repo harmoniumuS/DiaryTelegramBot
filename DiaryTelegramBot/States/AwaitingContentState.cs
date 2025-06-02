@@ -1,11 +1,13 @@
-﻿using DiaryTelegramBot.Keyboards;
+﻿using DiaryTelegramBot.Attributes;
+using DiaryTelegramBot.Data;
+using DiaryTelegramBot.Keyboards;
 using DiaryTelegramBot.Models;
-using DiaryTelegramBot.States;
 using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace DiaryTelegramBot.Handlers;
+namespace DiaryTelegramBot.States;
 
+[TelegramCallbackCommand("add_record",UserStatus.AwaitingContent)]
 public class AwaitingContentState:IState
 {
     private readonly ITelegramBotClient _botClient;
@@ -14,13 +16,13 @@ public class AwaitingContentState:IState
         _botClient = botClient;
     }
 
-    public async Task Handle(User user, long chatId, CancellationToken cancellationToken,string dataHandler = null)
+    public async Task Handle(StateContext stateContext,string data = null)
     {
-        if (!string.IsNullOrWhiteSpace(dataHandler))
+        if (!string.IsNullOrWhiteSpace(stateContext.MessageText))
         {
-            user.TempRecord.Text = dataHandler;
-            user.CurrentStatus = UserStatus.AwaitingDate;
-            BotKeyboardManager.SendDataKeyboardAsync(_botClient, chatId, cancellationToken,DateTime.Now);
+            stateContext.User.TempRecord.Text = stateContext.MessageText;
+            stateContext.User.CurrentStatus = UserStatus.AwaitingDate;
+            await BotKeyboardManager.SendDataKeyboardAsync(_botClient, stateContext.ChatId, stateContext.CancellationToken,DateTime.Now);
             return;
         }
 
@@ -28,9 +30,9 @@ public class AwaitingContentState:IState
             InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu"));
 
         await _botClient.SendMessage(
-            chatId,
+            stateContext.ChatId,
             "Введите запись:",
             replyMarkup: replyMarkup,
-            cancellationToken: cancellationToken);
+            cancellationToken: stateContext.CancellationToken);
     }
 }

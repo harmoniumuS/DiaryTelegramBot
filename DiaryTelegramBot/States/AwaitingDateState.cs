@@ -1,9 +1,13 @@
-﻿using DiaryTelegramBot.Keyboards;
-using DiaryTelegramBot.Models;
+﻿using DiaryTelegramBot.Attributes;
+using DiaryTelegramBot.Data;
+using DiaryTelegramBot.Keyboards;
 using Telegram.Bot;
 
 namespace DiaryTelegramBot.States;
 
+[TelegramCallbackCommand("date")]
+[TelegramCallbackCommand("calendar:prev")]
+[TelegramCallbackCommand("calendar:next")]
 public class AwaitingDateState : IState
 {
     private readonly ITelegramBotClient _botClient;
@@ -13,47 +17,45 @@ public class AwaitingDateState : IState
         _botClient = botClient;
     }
 
-    public async Task Handle(User user, long chatId, CancellationToken cancellationToken, string dataHandler = null)
+    public async Task Handle(StateContext stateContext,string data = null)
     {
-        if (dataHandler.StartsWith("date:"))
+        if (stateContext.CallbackData.StartsWith("date:"))
         {
-            var datePart = dataHandler.Substring("date:".Length);
+            var datePart = stateContext.CallbackData.Substring("date:".Length);
             if (DateTime.TryParse(datePart, out var parsedDate))
             {
-                if (user.CurrentStatus == UserStatus.AwaitingDate)
+                if (stateContext.User.CurrentStatus == UserStatus.AwaitingDate)
                 {
-                    if (user.TempRecord != null)
-                        user.TempRecord.SentTime = parsedDate;
-
-                    user.CurrentStatus = UserStatus.AwaitingTime; 
-
+                    if (stateContext.User.TempRecord != null)
+                        stateContext.User.TempRecord.SentTime = parsedDate;
+                    
                     await _botClient.SendMessage(
-                        chatId,
+                        stateContext.ChatId,
                         $"Вы выбрали дату: {parsedDate:dd.MM.yyyy}.",
-                        cancellationToken: cancellationToken);
-                    await BotKeyboardManager.SendTimeMarkUp(_botClient,chatId,cancellationToken);
+                        cancellationToken: stateContext.CancellationToken);
+                    await BotKeyboardManager.SendTimeMarkUp(_botClient,stateContext.ChatId,stateContext.CancellationToken);
                 }
                 else
                 {
                     await _botClient.SendMessage(
-                        chatId,
+                        stateContext.ChatId,
                         "Неверное состояние. Попробуйте ещё раз.",
-                        cancellationToken: cancellationToken);
+                        cancellationToken: stateContext.CancellationToken);
                 }
             }
             else
             {
                 await _botClient.SendMessage(
-                    chatId,
+                    stateContext.ChatId,
                     "Некорректная дата, попробуйте ещё раз.",
-                    cancellationToken: cancellationToken);
+                    cancellationToken: stateContext.CancellationToken);
             }
         }
-        else if (dataHandler.StartsWith("calendar:prev:") || dataHandler.StartsWith("calendar:next:"))
+        else if (stateContext.CallbackData.StartsWith("calendar:prev:") || stateContext.CallbackData.StartsWith("calendar:next:"))
         {
-            var parts = dataHandler.Split(':');
+            var parts = stateContext.CallbackData.Split(':');
             var action = parts[1];
-            var partOfDate = dataHandler.Substring($"calendar:{action}:".Length);
+            var partOfDate = stateContext.CallbackData.Substring($"calendar:{action}:".Length);
 
             if (DateTime.TryParse(partOfDate, out var changeMonthDate))
             {
@@ -61,22 +63,22 @@ public class AwaitingDateState : IState
                     ? changeMonthDate.AddMonths(-1)
                     : changeMonthDate.AddMonths(1);
 
-               await BotKeyboardManager.SendDataKeyboardAsync(_botClient,chatId,cancellationToken,newDate);
+               await BotKeyboardManager.SendDataKeyboardAsync(_botClient,stateContext.ChatId,stateContext.CancellationToken,newDate);
             }
             else
             {
                 await _botClient.SendMessage(
-                    chatId,
+                    stateContext.ChatId,
                     "Некорректная дата для перехода, попробуйте ещё раз.",
-                    cancellationToken: cancellationToken);
+                    cancellationToken: stateContext.CancellationToken);
             }
         }
         else
         {
             await _botClient.SendMessage(
-                chatId,
+                stateContext.ChatId,
                 "Пожалуйста, выберите дату с помощью календаря.",
-                cancellationToken: cancellationToken);
+                cancellationToken: stateContext.CancellationToken);
         }
     }
 }

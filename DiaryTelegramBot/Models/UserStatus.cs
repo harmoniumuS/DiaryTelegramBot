@@ -10,9 +10,9 @@
         AwaitingRemind,
         AwaitingRemoveRemind,
         AwaitingRemoveSelectedRecord,
-        AwaitingOffsetRemind,
         AwaitingGetAllReminds,
         AwaitingRemoveChoiceRemind,
         AwaitingAddRecord,
-        AwaitingDeleteConfirmation
+        AwaitingDeleteConfirmation,
+        NoStatus
     }
