@@ -1,100 +1,126 @@
-﻿using System.Globalization;
-using DiaryTelegramBot.Attributes;
+﻿using DiaryTelegramBot.Attributes;
 using DiaryTelegramBot.Data;
 using DiaryTelegramBot.Keyboards;
-using DiaryTelegramBot.Models;
 using DiaryTelegramBot.States;
 using Telegram.Bot;
 
-namespace DiaryTelegramBot.Handlers;    
+namespace DiaryTelegramBot.Handlers;
+
 [TelegramCallbackCommand("time_hour_", UserStatus.AwaitingTime)]
 [TelegramCallbackCommand("time_minute_", UserStatus.AwaitingTime)]
 public class AwaitingTimeState : IState
 {
     private readonly ITelegramBotClient _botClient;
+    private readonly UserContext _userContext;
 
-    public AwaitingTimeState(ITelegramBotClient botClient)
+    public AwaitingTimeState(ITelegramBotClient botClient, UserContext userContext)
     {
         _botClient = botClient;
+        _userContext = userContext;
     }
 
     public async Task Handle(StateContext stateContext, string data = null)
     {
-        if (!string.IsNullOrEmpty(stateContext.CallbackData) && stateContext.CallbackData.StartsWith("time_"))
+        var callbackData = stateContext.CallbackData;
+
+        if (!string.IsNullOrEmpty(callbackData))
         {
-            var parts = stateContext.CallbackData.Split('_');
-
-            if (parts.Length == 3)
+            if (callbackData.StartsWith("time_"))
             {
-                var timeType = parts[1]; 
-                var valuePart = parts[2];
-
-                if (timeType == "hour")
+                var parts = callbackData.Split('_');
+                if (parts.Length == 3)
                 {
-                    if (int.TryParse(valuePart, out int hour) && hour >= 0 && hour <= 23)
+                    switch (parts[1])
                     {
-                        var minuteKeyboard = BotKeyboardManager.SendMinutesMarkUp(hour);
-                        await _botClient.SendMessage(stateContext.ChatId,
-                            "Вы выбрали час. Теперь выберите минуты:",
-                            replyMarkup: minuteKeyboard,
-                            cancellationToken: stateContext.CancellationToken);
-                        
-                    }
-                    else
-                    {
-                        await _botClient.SendMessage(stateContext.ChatId,
-                            "Некорректный час. Попробуйте ещё раз.",
-                            cancellationToken: stateContext.CancellationToken);
-                    }
+                        case "hour":
+                            await HandleHourSelection(stateContext, parts[2]);
+                            return;
 
-                    return;
-                }
-                else if (timeType == "minute")
-                {
-                    var timeParts = valuePart.Split(':');
-                    if (timeParts.Length == 2
-                        && int.TryParse(timeParts[0], out int hour)
-                        && int.TryParse(timeParts[1], out int minute)
-                        && hour >= 0 && hour <= 23
-                        && minute >= 0 && minute <= 59)
-                    {
-                        if (stateContext.User.TempRecord != null)
-                        {
-                            var date = stateContext.User.TempRecord.SentTime.Date;
-                            stateContext.User.TempRecord.SentTime = date.AddHours(hour).AddMinutes(minute);
-                            stateContext.User.CurrentStatus = UserStatus.AwaitingAddRecord;
-
-                            await _botClient.SendMessage(stateContext.ChatId,
-                                $"Время установлено: {stateContext.User.TempRecord.SentTime:HH:mm}.",
-                                cancellationToken: stateContext.CancellationToken);
-                        }
-                        else
-                        {
-                            await _botClient.SendMessage(stateContext.ChatId,
-                                "Сначала выберите дату. Начните заново.",
-                                cancellationToken: stateContext.CancellationToken);
-                        }
+                        case "minute":
+                            await HandleMinuteSelection(stateContext, parts[2]);
+                            return;
                     }
-                    else
-                    {
-                        await _botClient.SendMessage(stateContext.ChatId,
-                            "Некорректный формат минут. Попробуйте ещё раз.",
-                            cancellationToken: stateContext.CancellationToken);
-                    }
-
-                    return;
                 }
             }
-        }
-
-        if (stateContext.CallbackData == "return_hour_selection")
-        {
-            await BotKeyboardManager.SendTimeMarkUp(_botClient, stateContext.ChatId, stateContext.CancellationToken);
-            return;
+            else if (callbackData == "return_hour_selection")
+            {
+                await BotKeyboardManager.SendTimeMarkUp(_botClient, stateContext.ChatId, stateContext.CancellationToken);
+                return;
+            }
         }
 
         await _botClient.SendMessage(stateContext.ChatId,
             "Неверный формат. Пожалуйста, выберите время с помощью кнопок.",
             cancellationToken: stateContext.CancellationToken);
+    }
+
+    private async Task HandleHourSelection(StateContext stateContext, string hourString)
+    {
+        if (int.TryParse(hourString, out int hour) && hour is >= 0 and <= 23)
+        {
+            var minuteKeyboard = BotKeyboardManager.SendMinutesMarkUp(hour);
+            await _botClient.SendMessage(stateContext.ChatId,
+                "Вы выбрали час. Теперь выберите минуты:",
+                replyMarkup: minuteKeyboard,
+                cancellationToken: stateContext.CancellationToken);
+        }
+        else
+        {
+            await _botClient.SendMessage(stateContext.ChatId,
+                "Некорректный час. Попробуйте ещё раз.",
+                cancellationToken: stateContext.CancellationToken);
+        }
+    }
+
+    private async Task HandleMinuteSelection(StateContext stateContext, string timeValue)
+    {
+        var timeParts = timeValue.Split(':');
+        if (timeParts.Length == 2
+            && int.TryParse(timeParts[0], out int hour)
+            && int.TryParse(timeParts[1], out int minute)
+            && hour is >= 0 and <= 23
+            && minute is >= 0 and <= 59)
+        {
+            var user = stateContext.User;
+            if (user.TempRecord != null)
+            {
+                var date = user.TempRecord.SentTime.Date;
+                user.TempRecord.SentTime = date.AddHours(hour).AddMinutes(minute);
+
+                if (!string.IsNullOrWhiteSpace(user.TempRecord.Text))
+                {
+                    await _userContext.AddMessageAsync(user, user.TempRecord.Text, user.TempRecord.SentTime);
+                    await _botClient.SendMessage(stateContext.ChatId,
+                        $"Запись сохранена на {user.TempRecord.SentTime:dd.MM.yyyy HH:mm}.",
+                        cancellationToken: stateContext.CancellationToken);
+
+                    user.TempRecord = null;
+                    user.CurrentStatus = UserStatus.None;
+                    await _userContext.UpdateUserAsync(user);
+                }
+                else
+                {
+                    await _botClient.SendMessage(stateContext.ChatId,
+                        "Текст записи отсутствует, не могу сохранить запись.",
+                        cancellationToken: stateContext.CancellationToken);
+
+                    user.TempRecord = null;
+                    user.CurrentStatus = UserStatus.None;
+                    await _userContext.UpdateUserAsync(user);
+                }
+            }
+            else
+            {
+                await _botClient.SendMessage(stateContext.ChatId,
+                    "Сначала выберите дату. Начните заново.",
+                    cancellationToken: stateContext.CancellationToken);
+            }
+        }
+        else
+        {
+            await _botClient.SendMessage(stateContext.ChatId,
+                "Некорректный формат минут. Попробуйте ещё раз.",
+                cancellationToken: stateContext.CancellationToken);
+        }
     }
 }

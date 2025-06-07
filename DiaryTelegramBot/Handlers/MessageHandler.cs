@@ -1,7 +1,5 @@
 ﻿using DiaryTelegramBot.Data;
 using DiaryTelegramBot.Keyboards;
-using DiaryTelegramBot.States;
-using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.Caching.Memory;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -29,12 +27,19 @@ namespace DiaryTelegramBot.Handlers
         }
         public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update,
             CancellationToken cancellationToken)
-        {
+        { 
+            var stateContext = _memoryCache.Get<StateContext>($"stateContext_{userId}");
+            if (stateContext == null)
+            {
+                stateContext = new StateContext();
+                _memoryCache.Set($"stateContext_{userId}", stateContext, TimeSpan.FromMinutes(30));
+            }
+            
             if (update.Type == UpdateType.Message && update.Message?.Text != null)
             {
                 try
                 {
-                    await HandleMessageAsync(botClient, update.Message, cancellationToken);
+                    await HandleMessageAsync(botClient, update.Message, cancellationToken,stateContext);
                 }
                 catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.Message.Contains("query is too old"))
                 {
@@ -64,7 +69,7 @@ namespace DiaryTelegramBot.Handlers
             }
         }
         private async Task HandleMessageAsync(ITelegramBotClient botClient, Message message,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,StateContext stateContext)
         {
             if (message.From != null)
             {
@@ -77,9 +82,6 @@ namespace DiaryTelegramBot.Handlers
                     entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
                     return await _userContext.GetUserAsync(userId);
                 });
-                
-                var stateContext = new StateContext(user, chatId, cancellationToken, messageText: text);
-               
 
                 if (text == "/start")
                 {

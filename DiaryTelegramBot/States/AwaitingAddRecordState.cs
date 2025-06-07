@@ -34,6 +34,7 @@ public class AwaitingAddRecordState : IState
             stateContext.User.CurrentStatus = UserStatus.None;
         }
         stateContext.User.TempRecord = null;
+        await _userContext.UpdateUserAsync(stateContext.User);
     }
     
 }

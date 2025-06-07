@@ -20,17 +20,24 @@ public class AwaitingContentState:IState
     {
         if (!string.IsNullOrWhiteSpace(stateContext.MessageText))
         {
+
+            if (stateContext.User.TempRecord == null)
+            {
+                stateContext.User.TempRecord = new Record();
+            }
+
             stateContext.User.TempRecord.Text = stateContext.MessageText;
             stateContext.User.CurrentStatus = UserStatus.AwaitingDate;
-            await BotKeyboardManager.SendDataKeyboardAsync(_botClient, stateContext.ChatId, stateContext.CancellationToken,DateTime.Now);
+            await BotKeyboardManager.SendDataKeyboardAsync(_botClient, stateContext.ChatId, stateContext.CallBackQueryId,stateContext.CancellationToken,DateTime.Now);
             return;
         }
 
         var replyMarkup = new InlineKeyboardMarkup(
             InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu"));
 
-        await _botClient.SendMessage(
+        await _botClient.EditMessageText(
             stateContext.ChatId,
+            messageId: stateContext.CallBackQueryId,
             "Введите запись:",
             replyMarkup: replyMarkup,
             cancellationToken: stateContext.CancellationToken);

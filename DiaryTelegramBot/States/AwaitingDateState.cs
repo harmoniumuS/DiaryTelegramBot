@@ -63,7 +63,14 @@ public class AwaitingDateState : IState
                     ? changeMonthDate.AddMonths(-1)
                     : changeMonthDate.AddMonths(1);
 
-               await BotKeyboardManager.SendDataKeyboardAsync(_botClient,stateContext.ChatId,stateContext.CancellationToken,newDate);
+                var keyboard = BotKeyboardManager.BuildCalendarKeyboard(newDate);
+
+                await _botClient.EditMessageText(
+                    chatId: stateContext.ChatId,
+                    messageId: stateContext.CallBackQueryId,
+                    text: $"Выберите дату: {newDate:MMMM yyyy}",
+                    replyMarkup: keyboard,
+                    cancellationToken: stateContext.CancellationToken);
             }
             else
             {

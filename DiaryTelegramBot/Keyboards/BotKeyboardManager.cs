@@ -8,9 +8,9 @@ namespace DiaryTelegramBot.Keyboards
     public static class BotKeyboardManager
     {
         private static CalendarBuilder _calendarBuilder = new CalendarBuilder();
-        public static async Task SendMainKeyboardAsync(ITelegramBotClient botClient, long chatId, CancellationToken cancellationToken)
+        public static InlineKeyboardMarkup GetMainKeyboard()
         {
-            var inlineKeyboard = new InlineKeyboardMarkup(new[]
+            return new InlineKeyboardMarkup(new[]
             {
                 new[]
                 {
@@ -31,8 +31,17 @@ namespace DiaryTelegramBot.Keyboards
                     InlineKeyboardButton.WithCallbackData("Посмотреть все напоминания", "view_reminders"),
                 }
             });
+        }
 
-            await botClient.SendMessage(chatId,"Выберите действие:",replyMarkup:inlineKeyboard,cancellationToken:cancellationToken);
+        public static async Task SendMainKeyboardAsync(ITelegramBotClient botClient, long chatId, CancellationToken cancellationToken)
+        {
+            var inlineKeyboard = GetMainKeyboard();
+
+            await botClient.SendMessage(
+                chatId,
+                "Выберите действие:",
+                replyMarkup: inlineKeyboard,
+                cancellationToken: cancellationToken);
         }
 
         public static async Task SendAddRemindersKeyboard(ITelegramBotClient botClient, long chatId, List<string> records, CancellationToken cancellationToken)
@@ -144,21 +153,31 @@ namespace DiaryTelegramBot.Keyboards
             }
             
         }
-        public static async Task SendDataKeyboardAsync(ITelegramBotClient botClient, long chatId,
-            CancellationToken cancellationToken,DateTime date)
-        {  
+        public static async Task SendDataKeyboardAsync(ITelegramBotClient botClient, long chatId, int callBackMessageId,
+            CancellationToken cancellationToken, DateTime date)
+        {
+            var keyboard = BuildCalendarKeyboard(date);
+
+            await botClient.EditMessageText(
+                chatId: chatId,
+                messageId: callBackMessageId,
+                text: $"Выберите дату. Выбран: {date:MMMM yyyy}.",
+                replyMarkup: keyboard,
+                cancellationToken: cancellationToken);
+        }
+        
+        public static InlineKeyboardMarkup BuildCalendarKeyboard(DateTime date)
+        {
             var calendarButtons = _calendarBuilder.GenerateCalendarButtons(
                 date.Year,
                 date.Month,
                 CalendarViewType.Weekly,
                 "ru");
+
             var buttons = calendarButtons.InlineKeyboard.ToList();
             buttons.Add([InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu")]);
-            var keyboard = new InlineKeyboardMarkup(buttons);
-            await botClient.SendMessage(chatId,
-                $"Выберите дату. Выбран: {date:MMMM yyyy}.",
-                replyMarkup: keyboard,
-                cancellationToken: cancellationToken);
+
+            return new InlineKeyboardMarkup(buttons);
         }
         public static async Task SendTimeMarkUp(ITelegramBotClient botClient, long chatId, CancellationToken cancellationToken)
         {
@@ -180,7 +199,7 @@ namespace DiaryTelegramBot.Keyboards
             buttons.Add(new[] { InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu") });
 
             var timeKeyboard = new InlineKeyboardMarkup(buttons);
-            await botClient.SendMessage(chatId, "Выберите час:", replyMarkup: timeKeyboard, cancellationToken: cancellationToken);
+            await botClient.SendMessage(chatId, "Выберите час:                      ", replyMarkup: timeKeyboard, cancellationToken: cancellationToken);
         }
 
 
@@ -205,19 +224,7 @@ namespace DiaryTelegramBot.Keyboards
 
             return new InlineKeyboardMarkup(minuteButtons);
         }
-        public static InlineKeyboardMarkup GetDeleteConfirmationKeyboard(int index)
-        {
-            return new InlineKeyboardMarkup(new[]
-            {
-                new []
-                {
-                    InlineKeyboardButton.WithCallbackData("✅ Подтвердить", $"confirm_delete_{index}"),
-                    InlineKeyboardButton.WithCallbackData("❌ Отмена", "cancel_delete")
-                }
-            });
-        }
-
-
+        
     }
     
     

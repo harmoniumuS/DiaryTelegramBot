@@ -78,17 +78,28 @@ namespace DiaryTelegramBot.Data
                 await context.SaveChangesAsync();
             }
         }
-        
-        private async Task SaveUserAsync(User user)
-        {
-            await UpdateUserAsync(user);
-        }
         public async Task UpdateUserAsync(User user)
         {
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            context.Users.Update(user);
-            await context.SaveChangesAsync();
+            
+            var existingUser = await context.Users
+                .FirstOrDefaultAsync(u => u.Id == user.Id);
+
+            if (existingUser == null)
+                throw new InvalidOperationException("Пользователь был удалён из базы данных.");
+            
+            existingUser.CurrentStatus = user.CurrentStatus;
+
+            try
+            {
+                await context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                Console.WriteLine($"Concurrency exception: {ex.Message}");
+                throw;
+            }
         }
         public async Task SaveRemindDataAsync(Remind remind)
         {
