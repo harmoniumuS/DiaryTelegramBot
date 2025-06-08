@@ -92,12 +92,6 @@ public class AwaitingTimeState : IState
                 
                 user.CurrentStatus = UserStatus.AwaitingAddRecord;
                 await _userContext.UpdateUserAsync(user);
-                
-                await _botClient.EditMessageText(
-                    stateContext.ChatId,
-                    stateContext.CallBackQueryId,
-                    $"Запись сохранена на дату и время: {stateContext.TempRecord.SentTime:dd.MM.yyyy HH:mm}.",
-                    cancellationToken: stateContext.CancellationToken);
             }
             else
             {

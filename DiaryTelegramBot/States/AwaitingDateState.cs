@@ -83,6 +83,7 @@ public class AwaitingDateState : IState
         }
         else
         {
+            if (stateContext.User.CurrentStatus == UserStatus.AwaitingContent)
             await _botClient.SendMessage(
                 stateContext.ChatId,
                 "Пожалуйста, выберите дату с помощью календаря.",

@@ -17,7 +17,7 @@ namespace DiaryTelegramBot.Handlers
             IEnumerable<IState> allStates,
             ITelegramBotClient botClient,
             UserContext userContext,
-            Dictionary<UserStatus, IState> statesByStatus) 
+            Dictionary<UserStatus, IState> statesByStatus)
         {
             _botClient = botClient;
             _userContext = userContext;
@@ -36,34 +36,47 @@ namespace DiaryTelegramBot.Handlers
             var user = context.User;
             var callbackData = context.CallbackData;
 
+            string previousStatus = user.CurrentStatus.ToString();
+
             if (!string.IsNullOrEmpty(callbackData))
             {
-                var (prefix, state) = _statesByCallbackCommand
-                    .FirstOrDefault(kvp => callbackData.StartsWith(kvp.Key));
-
-                if (state != null)
+                foreach (var kvp in _statesByCallbackCommand)
                 {
-                    var data = callbackData.Substring(prefix.Length);
-
-                    var attr = state.GetType()
-                        .GetCustomAttributes<TelegramCallbackCommandAttribute>()
-                        .FirstOrDefault(a => a.Command == prefix);
-
-                    if (attr != null && attr.InitialStatus != UserStatus.NoStatus && user.CurrentStatus != attr.InitialStatus)
+                    if (callbackData.StartsWith(kvp.Key))
                     {
-                        user.CurrentStatus = attr.InitialStatus;
-                        await _userContext.UpdateUserAsync(user);
-                    }
+                        var prefix = kvp.Key;
+                        var state = kvp.Value;
+                        var data = callbackData.Substring(prefix.Length);
 
-                    await state.Handle(context, data);
-                    await _userContext.UpdateUserAsync(user);
-                    return;
+                        var attr = state.GetType()
+                            .GetCustomAttributes<TelegramCallbackCommandAttribute>()
+                            .FirstOrDefault(a => a.Command == prefix);
+
+                        if (attr != null && attr.InitialStatus != UserStatus.NoStatus &&
+                            user.CurrentStatus != attr.InitialStatus)
+                        {
+                            user.CurrentStatus = attr.InitialStatus;
+                            await _userContext.UpdateUserAsync(user);
+                        }
+
+                        await state.Handle(context, data);
+
+                        if (user.CurrentStatus.ToString() != previousStatus &&
+                            _statesByStatus.TryGetValue(user.CurrentStatus, out var newState))
+                        {
+                            await newState.Handle(context);
+                        }
+
+                        await _userContext.UpdateUserAsync(user);
+                        return;
+                    }
                 }
             }
 
             if (!_statesByStatus.TryGetValue(user.CurrentStatus, out var currentState))
             {
-                await _botClient.SendMessage(context.ChatId, "Неизвестное состояние. Возвращаюсь в главное меню.", cancellationToken: context.CancellationToken);
+                await _botClient.SendMessage(context.ChatId, "Неизвестное состояние. Возвращаюсь в главное меню.",
+                    cancellationToken: context.CancellationToken);
                 user.CurrentStatus = UserStatus.None;
                 await _userContext.UpdateUserAsync(user);
                 return;

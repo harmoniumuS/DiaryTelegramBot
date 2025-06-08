@@ -99,6 +99,11 @@ namespace DiaryTelegramBot.Handlers
                     await BotKeyboardManager.SendMainKeyboardAsync(botClient, stateContext);
                     return;
                 }
+
+                await botClient.DeleteMessage(
+                    stateContext.ChatId,
+                    message.Id
+                    );
                 await _userStateHandler.HandleState(stateContext);
             }
         }
