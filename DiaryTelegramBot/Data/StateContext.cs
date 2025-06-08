@@ -1,4 +1,5 @@
 ﻿using DiaryTelegramBot.Models;
+using ReminderWorker.Data;
 
 namespace DiaryTelegramBot.Data;
 
@@ -6,10 +7,12 @@ public class StateContext
 {
     public User User { get; init; }
     public long ChatId { get; init; }
-    public CancellationToken CancellationToken { get; init; }
-    public string CallbackData { get; set; }
-    public string? MessageText { get; init; }
-    public int CallBackQueryId { get; init; }
+    public CancellationToken CancellationToken { get; set; }
+    public Record? TempRecord { get; set; } = new ();
+    public Remind? TempRemind { get; set; } = new ();
+    public string CallbackData { get; set; }                                            
+    public string? MessageText { get; set; }
+    public int CallBackQueryId { get; set; }
 
     public StateContext(User user
         , long chatId

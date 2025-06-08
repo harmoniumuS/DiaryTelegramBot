@@ -11,35 +11,49 @@ namespace DiaryTelegramBot.States;
 public class AwaitingContentState:IState
 {
     private readonly ITelegramBotClient _botClient;
-    public AwaitingContentState(ITelegramBotClient botClient)
+    private readonly UserContext _userContext;
+    public AwaitingContentState(ITelegramBotClient botClient,UserContext userContext)
     {
         _botClient = botClient;
+        _userContext = userContext;
     }
 
-    public async Task Handle(StateContext stateContext,string data = null)
+    public async Task Handle(StateContext stateContext, string data = null)
     {
         if (!string.IsNullOrWhiteSpace(stateContext.MessageText))
         {
-
-            if (stateContext.User.TempRecord == null)
+            if (stateContext.TempRecord == null)
             {
-                stateContext.User.TempRecord = new Record();
+                stateContext.TempRecord = new Record();
             }
 
-            stateContext.User.TempRecord.Text = stateContext.MessageText;
+            stateContext.TempRecord.Text = stateContext.MessageText;
             stateContext.User.CurrentStatus = UserStatus.AwaitingDate;
-            await BotKeyboardManager.SendDataKeyboardAsync(_botClient, stateContext.ChatId, stateContext.CallBackQueryId,stateContext.CancellationToken,DateTime.Now);
+
+            stateContext.MessageText = null;
+
+            await _userContext.UpdateUserAsync(stateContext.User);
+            
+            await BotKeyboardManager.SendDataKeyboardAsync(
+                _botClient,
+                stateContext.ChatId,
+                stateContext.CallBackQueryId,
+                stateContext.CancellationToken,
+                DateTime.Now);
+
             return;
         }
 
         var replyMarkup = new InlineKeyboardMarkup(
             InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu"));
-
+        
         await _botClient.EditMessageText(
-            stateContext.ChatId,
+            chatId: stateContext.ChatId,
             messageId: stateContext.CallBackQueryId,
-            "Введите запись:",
+            text: "Введите текст записи:",
             replyMarkup: replyMarkup,
             cancellationToken: stateContext.CancellationToken);
     }
+
+
 }

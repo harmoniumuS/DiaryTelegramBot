@@ -66,7 +66,6 @@ namespace DiaryTelegramBot
             services.AddScoped<AwaitingAddRecordState>();
             services.AddScoped<AwaitingRemoveRecordState>();
             services.AddScoped<AwaitingViewAllRecordsState>();
-            services.AddScoped<AwaitingMainMenuState>();
             services.AddScoped<AwaitingContentState>();
             services.AddScoped<AwaitingDateState>();
             services.AddScoped<AwaitingTimeState>();
@@ -84,7 +83,6 @@ namespace DiaryTelegramBot
                 var botClient = sp.GetRequiredService<ITelegramBotClient>();
                 var userContext = sp.GetRequiredService<UserContext>();
                 
-                var awaitingMainMenuState = sp.GetRequiredService<AwaitingMainMenuState>();
                 var awaitingAddRecordState = sp.GetRequiredService<AwaitingAddRecordState>();
                 var awaitingRemoveRecordState = sp.GetRequiredService<AwaitingRemoveRecordState>();
                 var awaitingViewAllRecordsState = sp.GetRequiredService<AwaitingViewAllRecordsState>();
@@ -99,7 +97,6 @@ namespace DiaryTelegramBot
                 
                 var statesByStatus = new Dictionary<UserStatus, IState>
                 {
-                    [UserStatus.None] = awaitingMainMenuState,
                     [UserStatus.AwaitingAddRecord] = awaitingAddRecordState,
                     [UserStatus.AwaitingRemoveRecord] = awaitingRemoveRecordState,
                     [UserStatus.AwaitingGetAllRecords] = awaitingViewAllRecordsState,

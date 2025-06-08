@@ -19,7 +19,7 @@ public class AwaitingAddRemindState : IState
         _userContext = userContext;
     }
 
-    public async Task Handle(StateContext stateContext,string data = null)
+    public async Task Handle(StateContext stateContext, string data = null)
     {
         var userData = await _userContext.GetMessagesAsync(stateContext.User.Id);
         var allRecords = userData
@@ -28,45 +28,53 @@ public class AwaitingAddRemindState : IState
 
         if (allRecords.Count == 0)
         {
-            await _botClient.SendMessage(stateContext.ChatId, "Нет доступных записей для установки напоминания.", cancellationToken:stateContext.CancellationToken);
+            await _botClient.SendMessage(stateContext.ChatId, "Нет доступных записей для установки напоминания.",
+                cancellationToken: stateContext.CancellationToken);
             return;
         }
 
         stateContext.User.CurrentStatus = UserStatus.AwaitingRemind;
 
-        await BotKeyboardManager.SendAddRemindersKeyboard(_botClient, stateContext.ChatId, allRecords, cancellationToken:stateContext.CancellationToken);
+        await BotKeyboardManager.SendAddRemindersKeyboard(_botClient, stateContext.ChatId, allRecords,
+            cancellationToken: stateContext.CancellationToken);
     }
 
     public async Task HandleAddRemind(User user, long chatId, int index, CancellationToken cancellationToken)
     {
-        if (user.CurrentStatus != UserStatus.AwaitingRemind || user.Messages == null || index < 0 || index >= user.Messages.Count)
+        if (user.CurrentStatus != UserStatus.AwaitingRemind || user.Messages == null || index < 0 ||
+            index >= user.Messages.Count)
         {
             await _botClient.SendMessage(chatId, "Некорректный выбор записи.", cancellationToken: cancellationToken);
             return;
         }
 
         var selectedRecord = user.Messages[index];
-        var recordDateTimeString = selectedRecord.Text.Substring(0, 16); 
+        var recordDateTimeString = selectedRecord.Text.Substring(0, 16);
 
-        if (DateTime.TryParseExact(recordDateTimeString, "yyyy-MM-dd HH:mm", null, System.Globalization.DateTimeStyles.None, out var selectedDateTime))
+        if (DateTime.TryParseExact(recordDateTimeString, "yyyy-MM-dd HH:mm", null,
+                System.Globalization.DateTimeStyles.None, out var selectedDateTime))
         {
+            /*
             user.TempRecord.SentTime = selectedDateTime;
-            user.TempRecord.Text = selectedRecord.Text.Substring(17); 
+            user.TempRecord.Text = selectedRecord.Text.Substring(17);
 
             await _botClient.SendMessage(
                 chatId,
                 $"Вы выбрали: {selectedRecord}\nТеперь выберите смещение времени.",
                 replyMarkup: BotKeyboardManager.GetReminderKeyboard(),
                 cancellationToken: cancellationToken);
+                */
         }
         else
         {
-            await _botClient.SendMessage(chatId, "Ошибка при извлечении времени из записи.", cancellationToken: cancellationToken);
+            await _botClient.SendMessage(chatId, "Ошибка при извлечении времени из записи.",
+                cancellationToken: cancellationToken);
         }
     }
 
     public async Task HandleRemindOffset(User user, long chatId, int offsetMinutes, CancellationToken cancellationToken)
     {
+        /*
         var record = user.TempRecord;
 
         if (record.SentTime == default || string.IsNullOrWhiteSpace(record.Text))
@@ -98,6 +106,8 @@ public class AwaitingAddRemindState : IState
 
         await _botClient.SendMessage(chatId, message, cancellationToken: cancellationToken);
         user.CurrentStatus = UserStatus.None;
-        user.TempRecord = new(); 
+        user.TempRecord = new();
+    }
+    */
     }
 }

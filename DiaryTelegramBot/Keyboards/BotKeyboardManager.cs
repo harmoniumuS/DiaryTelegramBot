@@ -1,4 +1,5 @@
-﻿using Telegram.Bot;
+﻿using DiaryTelegramBot.Data;
+using Telegram.Bot;
 using Telegram.CalendarKit;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.CalendarKit.Models.Enums;
@@ -33,15 +34,15 @@ namespace DiaryTelegramBot.Keyboards
             });
         }
 
-        public static async Task SendMainKeyboardAsync(ITelegramBotClient botClient, long chatId, CancellationToken cancellationToken)
+        public static async Task SendMainKeyboardAsync(ITelegramBotClient botClient, StateContext stateContext)
         {
             var inlineKeyboard = GetMainKeyboard();
 
             await botClient.SendMessage(
-                chatId,
+                stateContext.ChatId,
                 "Выберите действие:",
                 replyMarkup: inlineKeyboard,
-                cancellationToken: cancellationToken);
+                cancellationToken: stateContext.CancellationToken);
         }
 
         public static async Task SendAddRemindersKeyboard(ITelegramBotClient botClient, long chatId, List<string> records, CancellationToken cancellationToken)
@@ -179,7 +180,7 @@ namespace DiaryTelegramBot.Keyboards
 
             return new InlineKeyboardMarkup(buttons);
         }
-        public static async Task SendTimeMarkUp(ITelegramBotClient botClient, long chatId, CancellationToken cancellationToken)
+        public static async Task SendTimeMarkUp(ITelegramBotClient botClient,StateContext stateContext)
         {
             var time = Enumerable.Range(0, 24)
                 .Select(h => $"{h:D2}:00")
@@ -199,7 +200,7 @@ namespace DiaryTelegramBot.Keyboards
             buttons.Add(new[] { InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu") });
 
             var timeKeyboard = new InlineKeyboardMarkup(buttons);
-            await botClient.SendMessage(chatId, "Выберите час:                      ", replyMarkup: timeKeyboard, cancellationToken: cancellationToken);
+            await botClient.EditMessageText(stateContext.ChatId,stateContext.CallBackQueryId, $"Вы выбрали дату: {stateContext.TempRecord.SentTime:dd.MM.yyyy}.Теперь выберите время:", replyMarkup: timeKeyboard, cancellationToken: stateContext.CancellationToken);
         }
 
 

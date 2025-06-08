@@ -26,14 +26,15 @@ public class AwaitingDateState : IState
             {
                 if (stateContext.User.CurrentStatus == UserStatus.AwaitingDate)
                 {
-                    if (stateContext.User.TempRecord != null)
-                        stateContext.User.TempRecord.SentTime = parsedDate;
+                    if (stateContext.TempRecord != null)
+                        stateContext.TempRecord.SentTime = parsedDate;
                     
-                    await _botClient.SendMessage(
+                    await _botClient.EditMessageText(
                         stateContext.ChatId,
-                        $"Вы выбрали дату: {parsedDate:dd.MM.yyyy}.",
+                        stateContext.CallBackQueryId,
+                        ".",
                         cancellationToken: stateContext.CancellationToken);
-                    await BotKeyboardManager.SendTimeMarkUp(_botClient,stateContext.ChatId,stateContext.CancellationToken);
+                    await BotKeyboardManager.SendTimeMarkUp(_botClient,stateContext);
                 }
                 else
                 {

@@ -44,7 +44,7 @@ public class AwaitingTimeState : IState
             }
             else if (callbackData == "return_hour_selection")
             {
-                await BotKeyboardManager.SendTimeMarkUp(_botClient, stateContext.ChatId, stateContext.CancellationToken);
+                await BotKeyboardManager.SendTimeMarkUp(_botClient, stateContext);
                 return;
             }
         }
@@ -59,7 +59,9 @@ public class AwaitingTimeState : IState
         if (int.TryParse(hourString, out int hour) && hour is >= 0 and <= 23)
         {
             var minuteKeyboard = BotKeyboardManager.SendMinutesMarkUp(hour);
-            await _botClient.SendMessage(stateContext.ChatId,
+            await _botClient.EditMessageText(
+                stateContext.ChatId,
+                stateContext.CallBackQueryId,
                 "Вы выбрали час. Теперь выберите минуты:",
                 replyMarkup: minuteKeyboard,
                 cancellationToken: stateContext.CancellationToken);
@@ -82,32 +84,20 @@ public class AwaitingTimeState : IState
             && minute is >= 0 and <= 59)
         {
             var user = stateContext.User;
-            if (user.TempRecord != null)
+
+            if (stateContext.TempRecord != null)
             {
-                var date = user.TempRecord.SentTime.Date;
-                user.TempRecord.SentTime = date.AddHours(hour).AddMinutes(minute);
-
-                if (!string.IsNullOrWhiteSpace(user.TempRecord.Text))
-                {
-                    await _userContext.AddMessageAsync(user, user.TempRecord.Text, user.TempRecord.SentTime);
-                    await _botClient.SendMessage(stateContext.ChatId,
-                        $"Запись сохранена на {user.TempRecord.SentTime:dd.MM.yyyy HH:mm}.",
-                        cancellationToken: stateContext.CancellationToken);
-
-                    user.TempRecord = null;
-                    user.CurrentStatus = UserStatus.None;
-                    await _userContext.UpdateUserAsync(user);
-                }
-                else
-                {
-                    await _botClient.SendMessage(stateContext.ChatId,
-                        "Текст записи отсутствует, не могу сохранить запись.",
-                        cancellationToken: stateContext.CancellationToken);
-
-                    user.TempRecord = null;
-                    user.CurrentStatus = UserStatus.None;
-                    await _userContext.UpdateUserAsync(user);
-                }
+                var date = stateContext.TempRecord.SentTime.Date;
+                stateContext.TempRecord.SentTime = date.AddHours(hour).AddMinutes(minute);
+                
+                user.CurrentStatus = UserStatus.AwaitingAddRecord;
+                await _userContext.UpdateUserAsync(user);
+                
+                await _botClient.EditMessageText(
+                    stateContext.ChatId,
+                    stateContext.CallBackQueryId,
+                    $"Запись сохранена на дату и время: {stateContext.TempRecord.SentTime:dd.MM.yyyy HH:mm}.",
+                    cancellationToken: stateContext.CancellationToken);
             }
             else
             {

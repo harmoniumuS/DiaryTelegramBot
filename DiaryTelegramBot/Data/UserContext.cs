@@ -33,19 +33,23 @@ namespace DiaryTelegramBot.Data
             await context.SaveChangesAsync();
             return user;
         }
-         public async Task AddMessageAsync(User user, string textMessage, DateTime? createdAt = null)
+        public async Task AddMessageAsync(User user, string textMessage, DateTime? createdAt = null)
         {
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
             var message = new Record
             {
                 UserId = user.Id,
                 Text = textMessage,
                 SentTime = createdAt ?? DateTime.UtcNow
             };
-            user.AddRecord(message);
-            context.Users.Update(user);
+            
+            await context.Records.AddAsync(message);
+            
             await context.SaveChangesAsync();
+            
+            user.AddRecord(message);
         }
         public async Task<List<Record>> GetMessagesAsync(long userId)
         {

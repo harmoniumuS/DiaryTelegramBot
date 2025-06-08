@@ -21,15 +21,15 @@ public class AwaitingSelectedRemoveRemind : IState
 
         var reminders = await _userContext.GetUserRemindDataAsync(stateContext.User.Id);
 
-        if (stateContext.User.TempRemind != null && stateContext.User.TempRemind.SelectedIndex > reminders.Count)
+        if (stateContext.TempRemind != null && stateContext.TempRemind.SelectedIndex > reminders.Count)
         {
             await _botClient.SendMessage(stateContext.ChatId, "Напоминание с таким номером не найдено.");
             return;
         }
 
-        if (stateContext.User.TempRemind != null)
+        if (stateContext.TempRemind != null)
         {
-            var reminderToDelete = reminders[stateContext.User.TempRemind.SelectedIndex - 1];
+            var reminderToDelete = reminders[stateContext.TempRemind.SelectedIndex - 1];
             var success = await _userContext.DeleteUserRemindDataAsync(stateContext.User.Id, reminderToDelete.Id);
 
             if (success)

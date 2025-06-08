@@ -15,31 +15,50 @@ namespace DiaryTelegramBot.Handlers
         private readonly UserContext _userContext;
         private readonly IMemoryCache _memoryCache;
         
-        public MessageHandler(PressedButtonHandler pressedButtonHandler
-            ,UserStateHandler userStateHandler
-            ,UserContext userContext
-            ,IMemoryCache memoryCache)
+        public MessageHandler(PressedButtonHandler pressedButtonHandler,
+            UserStateHandler userStateHandler,
+            UserContext userContext,
+            IMemoryCache memoryCache)
         {
             _pressedButtonHandler = pressedButtonHandler;
             _userStateHandler = userStateHandler;
             _userContext = userContext;
             _memoryCache = memoryCache;
         }
+
         public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update,
             CancellationToken cancellationToken)
         { 
-            var stateContext = _memoryCache.Get<StateContext>($"stateContext_{userId}");
-            if (stateContext == null)
-            {
-                stateContext = new StateContext();
-                _memoryCache.Set($"stateContext_{userId}", stateContext, TimeSpan.FromMinutes(30));
-            }
-            
             if (update.Type == UpdateType.Message && update.Message?.Text != null)
             {
                 try
                 {
-                    await HandleMessageAsync(botClient, update.Message, cancellationToken,stateContext);
+                    var userId = update.Message.From?.Id;
+                    if (userId == null) return;
+                    
+                    if (!_memoryCache.TryGetValue<StateContext>($"state_{userId}", out var stateContext))
+                    {
+                        
+                        var user = await _userContext.GetUserAsync(userId.Value);
+                        stateContext = new StateContext(
+                            user,
+                            update.Message.Chat.Id,
+                            cancellationToken,
+                            callbackData: null,
+                            messageText: update.Message.Text,
+                            callBackQueryId: 0);
+                    }
+                    else
+                    {
+                        if (stateContext != null)
+                        {
+                            stateContext.MessageText = update.Message.Text;
+                            stateContext.CancellationToken = cancellationToken;
+                        }
+                    }
+
+                    await HandleMessageAsync(botClient, update.Message, cancellationToken, stateContext);
+                    _memoryCache.Set($"state_{userId}", stateContext, TimeSpan.FromMinutes(10));
                 }
                 catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.Message.Contains("query is too old"))
                 {
@@ -61,7 +80,7 @@ namespace DiaryTelegramBot.Handlers
                 {
                     Console.WriteLine("CallbackQuery is too old to answer: " + ex.Message);
                 }
-                catch (Exception ex)
+                catch (Exception ex)                                                    
                 {
                     Console.WriteLine("Unexpected error in AnswerCallbackQuery: " + ex.Message);
                 }
@@ -69,23 +88,15 @@ namespace DiaryTelegramBot.Handlers
             }
         }
         private async Task HandleMessageAsync(ITelegramBotClient botClient, Message message,
-            CancellationToken cancellationToken,StateContext stateContext)
+            CancellationToken cancellationToken, StateContext stateContext)
         {
             if (message.From != null)
             {
-               
-                var userId = message.From.Id;
                 var chatId = message.Chat.Id;
                 var text = message.Text;
-                var user = await _memoryCache.GetOrCreateAsync($"user_{userId}", async entry =>
-                {
-                    entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
-                    return await _userContext.GetUserAsync(userId);
-                });
-
                 if (text == "/start")
                 {
-                    await BotKeyboardManager.SendMainKeyboardAsync(botClient, chatId, cancellationToken);
+                    await BotKeyboardManager.SendMainKeyboardAsync(botClient, stateContext);
                     return;
                 }
                 await _userStateHandler.HandleState(stateContext);
