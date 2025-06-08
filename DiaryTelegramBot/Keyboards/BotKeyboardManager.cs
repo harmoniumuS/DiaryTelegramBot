@@ -92,15 +92,16 @@ namespace DiaryTelegramBot.Keyboards
         }
 
         
-        public static async Task SendRemoveKeyboardAsync(ITelegramBotClient botClient, long chatId, List<string> records, CancellationToken cancellationToken, 
+        public static async Task SendRemoveKeyboardAsync(ITelegramBotClient botClient, List<string> records,StateContext stateContext,
             bool sendIntroMessage = true,bool iSReminderKeyboard =false)
         {
             if (records.Count == 0)
             {
-                await botClient.SendMessage(
-                    chatId,
+                await botClient.EditMessageText(
+                    stateContext.ChatId,
+                    stateContext.CallBackQueryId,
                     "Нет записей для удаления.",
-                    cancellationToken: cancellationToken);
+                    cancellationToken: stateContext.CancellationToken);
                 return;
             }
 
@@ -122,11 +123,12 @@ namespace DiaryTelegramBot.Keyboards
                     ? "Выберите запись для удаления:"
                     : "Обновлённый список записей:";
 
-                await botClient.SendMessage(
-                    chatId,
+                await botClient.EditMessageText(
+                    stateContext.ChatId,
+                    stateContext.CallBackQueryId,
                     messageText,
                     replyMarkup: reminderKeyboard,
-                    cancellationToken: cancellationToken);
+                    cancellationToken: stateContext.CancellationToken);
             }
             else
             {
@@ -146,11 +148,12 @@ namespace DiaryTelegramBot.Keyboards
                     ? "Выберите запись для удаления:"
                     : "Обновлённый список записей:";
 
-                await botClient.SendMessage(
-                    chatId,
+                await botClient.EditMessageText(
+                    stateContext.ChatId,
+                    stateContext.CallBackQueryId,
                     messageText,
                     replyMarkup: keyboard,
-                    cancellationToken: cancellationToken);
+                    cancellationToken: stateContext.CancellationToken);
             }
             
         }

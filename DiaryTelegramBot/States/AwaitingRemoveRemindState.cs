@@ -31,6 +31,6 @@ public class AwaitingRemoveRemindState:IState
             .ToList();
         
         
-        await BotKeyboardManager.SendRemoveKeyboardAsync(_botClient, stateContext.ChatId, formattedRecords, stateContext.CancellationToken);
+        await BotKeyboardManager.SendRemoveKeyboardAsync(_botClient,formattedRecords, stateContext);
     }
 }

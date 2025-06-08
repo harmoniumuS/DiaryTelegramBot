@@ -20,40 +20,53 @@ public class AwaitingContentState:IState
 
     public async Task Handle(StateContext stateContext, string data = null)
     {
-        if (!string.IsNullOrWhiteSpace(stateContext.MessageText))
+        try
         {
-            if (stateContext.TempRecord == null)
+            if (!string.IsNullOrWhiteSpace(stateContext.MessageText))
             {
-                stateContext.TempRecord = new Record();
+                if (stateContext.TempRecord == null)
+                {
+                    stateContext.TempRecord = new Record();
+                }
+
+                stateContext.TempRecord.Text = stateContext.MessageText;
+                stateContext.User.CurrentStatus = UserStatus.AwaitingDate;
+
+                stateContext.MessageText = null;
+
+                await _userContext.UpdateUserAsync(stateContext.User);
+
+                await BotKeyboardManager.SendDataKeyboardAsync(
+                    _botClient,
+                    stateContext.ChatId,
+                    stateContext.CallBackQueryId,
+                    stateContext.CancellationToken,
+                    DateTime.Now);
+
+                return;
             }
 
-            stateContext.TempRecord.Text = stateContext.MessageText;
-            stateContext.User.CurrentStatus = UserStatus.AwaitingDate;
+            var replyMarkup = new InlineKeyboardMarkup(
+                InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu"));
 
-            stateContext.MessageText = null;
-
-            await _userContext.UpdateUserAsync(stateContext.User);
-            
-            await BotKeyboardManager.SendDataKeyboardAsync(
-                _botClient,
-                stateContext.ChatId,
-                stateContext.CallBackQueryId,
-                stateContext.CancellationToken,
-                DateTime.Now);
-
-            return;
+            try
+            {
+                await _botClient.EditMessageText(
+                    chatId: stateContext.ChatId,
+                    messageId: stateContext.CallBackQueryId,
+                    text: "Введите текст записи:",
+                    replyMarkup: replyMarkup,
+                    cancellationToken: stateContext.CancellationToken);
+            }
+            catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.Message.Contains("message is not modified"))
+            {
+                // Игнорируем эту ошибку, т.к. сообщение не изменилось
+            }
         }
-
-        var replyMarkup = new InlineKeyboardMarkup(
-            InlineKeyboardButton.WithCallbackData("Вернуться в главное меню", "return_main_menu"));
-        
-        await _botClient.EditMessageText(
-            chatId: stateContext.ChatId,
-            messageId: stateContext.CallBackQueryId,
-            text: "Введите текст записи:",
-            replyMarkup: replyMarkup,
-            cancellationToken: stateContext.CancellationToken);
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Ошибка в AwaitingContentState.Handle: {ex.Message}");
+            await _botClient.SendMessage(stateContext.ChatId, "Произошла ошибка. Попробуйте еще раз позже.");
+        }
     }
-
-
 }

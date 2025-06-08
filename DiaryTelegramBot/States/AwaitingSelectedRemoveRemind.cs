@@ -57,9 +57,8 @@ public class AwaitingSelectedRemoveRemind : IState
 
         await BotKeyboardManager.SendRemoveKeyboardAsync(
             _botClient,
-            stateContext.ChatId,
             formatted,
-            stateContext.CancellationToken,
+            stateContext,
             iSReminderKeyboard: true
         );
     }

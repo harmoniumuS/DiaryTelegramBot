@@ -1,4 +1,4 @@
-﻿using DiaryTelegramBot.Attributes;
+﻿
 using DiaryTelegramBot.Data;
 using DiaryTelegramBot.Keyboards;
 using DiaryTelegramBot.States;
@@ -17,38 +17,50 @@ public class AwaitingAddRecordState : IState
 
     public async Task Handle(StateContext stateContext, string data = null)
     {
-        if (stateContext.TempRecord != null)
+        if (stateContext.TempRecord == null)
         {
-            if (string.IsNullOrWhiteSpace(stateContext.TempRecord.Text))
-            {
-                await _botClient.SendMessage(stateContext.ChatId, "Текст записи не может быть пустым. Пожалуйста, введите текст.");
-                return; 
-            }
+            await _botClient.SendMessage(stateContext.ChatId, "Нет активной записи. Пожалуйста, начните добавление заново.");
+            return;
+        }
 
-            await _userContext.AddMessageAsync(stateContext.User, stateContext.TempRecord.Text,
-                stateContext.TempRecord.SentTime);
+        if (string.IsNullOrWhiteSpace(stateContext.TempRecord.Text))
+        {
+            await _botClient.SendMessage(stateContext.ChatId, "Текст записи не может быть пустым. Пожалуйста, введите текст.");
+            return;
+        }
+
+        await _userContext.AddMessageAsync(stateContext.User, stateContext.TempRecord.Text, stateContext.TempRecord.SentTime);
+
+        try
+        {
             await _botClient.EditMessageText(
-                stateContext.ChatId, 
+                stateContext.ChatId,
                 stateContext.CallBackQueryId,
                 $"Запись сохранена на дату и время: {stateContext.TempRecord.SentTime:dd.MM.yyyy HH:mm}.",
                 cancellationToken: stateContext.CancellationToken);
-            Task.Delay(2000).Wait();
-            _botClient.DeleteMessage(
-                stateContext.ChatId,
-                stateContext.CallBackQueryId,
-                stateContext.CancellationToken);
-            BotKeyboardManager.SendMainKeyboardAsync(_botClient, stateContext);
-            
-            stateContext.User.CurrentStatus = UserStatus.None;
-            stateContext.TempRecord = null;
-            stateContext.MessageText = null;
-
-            await _userContext.UpdateUserAsync(stateContext.User);
-            
         }
-        else
+        catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.Message.Contains("message is not modified"))
         {
-            await _botClient.SendMessage(stateContext.ChatId, "Нет активной записи. Пожалуйста, начните добавление заново.");
+            // Игнорируем ошибку "message is not modified"
         }
+
+        await Task.Delay(2000);
+
+        try
+        {
+            await _botClient.DeleteMessage(stateContext.ChatId, stateContext.CallBackQueryId, stateContext.CancellationToken);
+        }
+        catch
+        {
+            // Игнорируем ошибки удаления сообщения
+        }
+
+        await BotKeyboardManager.SendMainKeyboardAsync(_botClient, stateContext);
+
+        stateContext.User.CurrentStatus = UserStatus.None;
+        stateContext.TempRecord = null;
+        stateContext.MessageText = null;
+
+        await _userContext.UpdateUserAsync(stateContext.User);
     }
 }
