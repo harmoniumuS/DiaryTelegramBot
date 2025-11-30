@@ -1,6 +1,6 @@
 ﻿namespace DiaryTelegramBot.Data;
 
-public class UserReminder
+public class  UserReminder
 {
     public long Id { get; set; } 
     

@@ -24,7 +24,6 @@ namespace DiaryTelegramBot
         {
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
-            
             services.AddSingleton<IMemoryCache, MemoryCache>();
             services.AddSingleton<UserStateService>();
             services.AddScoped<AddRemindHandler>();
