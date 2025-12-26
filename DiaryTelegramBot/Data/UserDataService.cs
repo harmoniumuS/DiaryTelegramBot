@@ -5,7 +5,6 @@ namespace DiaryTelegramBot.Data
 {
     public class UserDataService
     {
-        //для того чтобы база не закрылась раньше вызвав dispose, открываем все через IServiceScopeFactory. Почитать про него и его плюсы и минусы
         private readonly IServiceScopeFactory _scopeFactory;
 
         public UserDataService(IServiceScopeFactory scopeFactory)
