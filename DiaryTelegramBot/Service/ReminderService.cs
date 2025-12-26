@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Telegram.Bot;
 
 namespace DiaryTelegramBot.Service;
-//почитать и понять как тут все работает
 public class ReminderService:BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
